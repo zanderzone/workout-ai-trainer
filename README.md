@@ -14,6 +14,7 @@ Workout AI Trainer is an AI-powered system designed to generate structured, peri
 
 ## Future Improvements
 The following enhancements are planned for future versions:
+- **Prompts**: Improving prompts to generate consistent and complete response is a work in progress.
 - **Advanced AI Models**: Integration with multiple AI models to improve workout recommendations.
 - **Personalization Enhancements**: Better adaptation based on user performance and past progress.
 - **UI and Dashboard**: Development of a frontend interface for users to track their workouts.
