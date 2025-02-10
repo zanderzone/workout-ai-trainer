@@ -60,6 +60,8 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
         }; 
 
         console.log(`missing days ${missingDays}`);
+        const MAX_RETRIES = 3;
+        let retries = 0;
 
         while (missingDays.length > 0) {
             const initialPrompt = `You are a professional CrossFit coach designing structured, periodized workout plans in JSON format.
@@ -159,11 +161,17 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
             
             console.log("Generated Workout Plan:");
             console.log(JSON.stringify(generatedPlan, null, 2));
+
             // Validate response schema
             const validation = workoutResponseSchema.safeParse(generatedPlan);
             if (!validation.success) {
-                console.error(`Invalid AI response schema: ${validation.error}`);
-                throw new Error("Invalid AI response schema");
+                retries++;
+                console.warn(`Invalid AI response schema: ${validation.error}, retrying request ${retries}`);
+
+                if (retries >= MAX_RETRIES) {
+                    throw new Error("Failed to generate a valid workout plan");
+                }
+                continue;
             }
 
             // Merge the generated plan into completeWorkoutPlan

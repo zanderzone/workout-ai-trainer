@@ -21,6 +21,7 @@ The following enhancements are planned for future versions:
 - **Database Optimization**: Improved handling of workout data with caching for faster responses.
 - **Mobile Support**: API adjustments for seamless integration into mobile apps.
 - **Expanded Exercise Library**: More detailed breakdowns and scaling options for workouts.
+- **Exponential Backoff**: Support retry thresholds and exponential backoff for AI API requests.
 
 
 ## How It Works
