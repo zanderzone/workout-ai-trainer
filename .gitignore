@@ -1,0 +1,56 @@
+# Node.js dependencies
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Compiled TypeScript files
+dist/
+out/
+build/
+
+# Logs and debugging
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+*.log
+
+# Editor/IDE settings
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Cache and temporary files
+.cache/
+tmp/
+*.bak
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Testing coverage reports
+coverage/
+jest.config.js
+*.spec.ts
+*.test.ts
+
+# Docker-related files
+docker-compose.override.yml
+docker-compose.dev.yml
+
+# AI model or API-generated outputs
+generated_data/
+
+# docker volume mounts
+docker/data/mongodb
+docker/data/postgres

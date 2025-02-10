@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: postgres-local
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: workouts
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo-local
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./data/mongodb:/data/db
+
+  # api:
+  #   build: .
+  #   container_name: express-api
+  #   depends_on:
+  #     - postgres
+  #     - mongo
+  #   environment:
+  #     MONGO_URI: mongodb://mongo:27017
+  #     POSTGRES_URI: postgres://postgres:secret@postgres/workouts
+  #     OPENAI_API_KEY: your-openai-api-key
+  #     JWT_SECRET: your-jwt-secret
+  #     AUTH_ENABLED: "true"
+  #     API_KEYS: key1,key2,key3
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - .:/app
+  #   command: ["npm", "run", "start"]
+
+volumes:
+  postgres_data:
+    driver: local
+  mongo_data:
+    driver: local
