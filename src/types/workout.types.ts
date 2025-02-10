@@ -21,7 +21,7 @@ export const workoutResponseSchema = z.object({
                     day: z.number(),
                     warmup: z.object({
                         type: z.string(),
-                        duration: z.string(),
+                        duration: z.string().optional(),
                         activities: z.array(
                             z.object({
                                 activity: z.string().optional(),
@@ -41,10 +41,10 @@ export const workoutResponseSchema = z.object({
                                 ).optional()
                             })
                         ).optional()
-                    }),
+                    }).optional(),
                     workout: z.object({
                         type: z.string(),
-                        duration: z.string(),
+                        duration: z.string().optional(),
                         exercises: z.array(
                             z.object({
                                 exercise: z.string(),
@@ -67,7 +67,7 @@ export const workoutResponseSchema = z.object({
                     }),
                     cooldown: z.object({
                         type: z.string(),
-                        duration: z.string(),
+                        duration: z.string().optional(),
                         activities: z.array(
                             z.object({
                                 activity: z.string().optional(),
@@ -87,7 +87,7 @@ export const workoutResponseSchema = z.object({
                                 ).optional()
                             })
                         ).optional()
-                    }),
+                    }).optional(),
                     recovery: z.string().optional()
                 })
             )

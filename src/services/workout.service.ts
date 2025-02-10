@@ -75,6 +75,8 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
         - Providing complete exercise details, including reps, weight percentage (if applicable), and scaling options.
         - Including a strength component where applicable and ensuring a well-defined workout of the day (WOD).
         - If requested by the workout options, include rest-days, warm-ups, main workouts, cooldowns, and post-workout recovery recommendations.
+        - For rest-days, include the workout array field as empty.
+        - If relevant, include benchmark workouts and track progress based on past results.
         - Include the workout plan description, duration, workout type or style, and a breakdown of each week's plan.
 
         When generating the workout plan:
@@ -110,6 +112,9 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
                 - Ensure the response includes ONLY the remaining training days or weeks based on the token's information.
                 - Do not repeat previous days or regenerate the entire workout plan.
                 - Include the workout plan description, duration, type, and a breakdown of each week's plan.
+                - If relevant, include benchmark workouts and track progress based on past results.
+                - If requested by the workout options, include rest-days, warm-ups, main workouts, cooldowns, and post-workout recovery recommendations.
+                - For rest-days, include the workout array field as empty and set type as "Rest Day".
 
                 Only return a JSON object matching this schema. No explanations ${workoutSchemaJson}.
                 Return a **fully populated** workout plan for week ${currentWeek} only.
@@ -157,7 +162,7 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
             // Validate response schema
             const validation = workoutResponseSchema.safeParse(generatedPlan);
             if (!validation.success) {
-                console.error("Schema validation error:", validation.error.format());
+                console.error(`Invalid AI response schema: ${validation.error}`);
                 throw new Error("Invalid AI response schema");
             }
 
