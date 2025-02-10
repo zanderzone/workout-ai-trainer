@@ -12,6 +12,17 @@ Workout AI Trainer is an AI-powered system designed to generate structured, peri
 - **Continuity Tracking**: Uses a `continuationToken` to track remaining workouts and ensure training progress.
 - **JSON Schema Compliance**: Ensures AI-generated plans conform to a strict schema for consistency.
 
+## Future Improvements
+The following enhancements are planned for future versions:
+- **Advanced AI Models**: Integration with multiple AI models to improve workout recommendations.
+- **Personalization Enhancements**: Better adaptation based on user performance and past progress.
+- **UI and Dashboard**: Development of a frontend interface for users to track their workouts.
+- **Workout Recovery Recommendations**: Smarter recommendations for rest, mobility work, and injury prevention.
+- **Database Optimization**: Improved handling of workout data with caching for faster responses.
+- **Mobile Support**: API adjustments for seamless integration into mobile apps.
+- **Expanded Exercise Library**: More detailed breakdowns and scaling options for workouts.
+
+
 ## How It Works
 1. **User Profile & History**: The system takes in user-specific data such as age, fitness level, and past workout performances.
 2. **Workout Plan Generation**: The AI generates a workout plan, covering only the missing days for the current week.
