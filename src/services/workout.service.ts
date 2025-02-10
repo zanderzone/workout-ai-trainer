@@ -69,15 +69,13 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
         - Customized to the user's background, fitness goals, available equipment, and training preferences.
         - Structured using periodization based on the type specified by the user (e.g., block, linear, undulating).
         - Inclusive of named CrossFit workouts (e.g., 'The Girls'), benchmark WODs, and randomly generated CrossFit-style workouts.
-        - Designed for the athlete's age, sex, fitness level, injury history, and incorporates exercises that may strengthen weaknesses (if possible).
+        - Designed for the athlete's age, weight, sex, fitness level, injury history, and incorporates exercises that may strengthen weaknesses (if possible).
         - Covering the full workout plan duration as specified by the user.
         - Following the user's requested workout frequency (days per week) and ensuring an even distribution of workouts.
         - Providing complete exercise details, including reps, weight percentage (if applicable), and scaling options.
         - Including a strength component where applicable and ensuring a well-defined workout of the day (WOD).
-        - Comprising warm-ups, main workouts, cooldowns, and post-workout recovery recommendations.
-        - Delivered in strict JSON format to adhere to the defined schema.
-        - If no value is provided for a specific field, please include a placeholder or 'N/A' to maintain the structure of the JSON response.
-        - Include the workout plan description, duration, type, and a breakdown of each week's plan.
+        - If requested by the workout options, include rest-days, warm-ups, main workouts, cooldowns, and post-workout recovery recommendations.
+        - Include the workout plan description, duration, workout type or style, and a breakdown of each week's plan.
 
         When generating the workout plan:
 
@@ -93,7 +91,7 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
             **DO NOT describe the schema.** 
             **ONLY return valid JSON data.**
             **GUARANTEE that each day in the response adheres to the schema completely**
-            **IF POSSIBLE, return more than 1 day in to minimize follow up request for remaining days**
+            **IF POSSIBLE, return more than 1 day to minimize follow up request for remaining days**
 
             User Profile: ${JSON.stringify(userProfile)} 
             Past Results: ${JSON.stringify(pastResults)} 
@@ -119,7 +117,7 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
                 **DO NOT describe the schema.** 
                 **ONLY return valid JSON data.**
                 **GUARANTEE that each day in the response adheres to the schema completely**
-                **IF POSSIBLE, return more than 1 day in to minimize follow up request for remaining days**
+                **IF POSSIBLE, return more than 1 day to minimize follow up request for remaining days**
 
                 Continuation Token: ${token || ""} 
                 Current Week: ${currentWeek}
