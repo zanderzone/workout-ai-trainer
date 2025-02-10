@@ -1,90 +1,62 @@
 import { OpenAIWorkoutAdapter } from "../src/services/workout.service";
 import dotenv from "dotenv";
+import { MongoClient } from 'mongodb';
+import { v4 as uuidv4 } from 'uuid';
+import { WorkoutResult } from "../src/types/workout.types";
+import { WorkoutOptions } from "../src/types/workoutOptions.types";
+
+const MONGO_URI: string = process.env.MONGO_URI || "mongodb://localhost:27017/workouts_ai_trainer";
 
 dotenv.config();
 
 async function testGenerateWorkout() {
     const aiAdapter = new OpenAIWorkoutAdapter();
+    const mongoClient = new MongoClient(MONGO_URI);
+    await mongoClient.connect();
+    const mongoDb = mongoClient.db("workouts_ai_trainer");
+    const userCollection = mongoDb.collection("users");
+    const id = "16dfe456-071e-47c1-b65f-d6072c45842f";
 
-    const userProfile = {
-        name: "Zander",
-        age: 25,
-        sex: "Male",
-        weight: "210 lbs",
-        height: "5'7\"",
-        nationality: "Filipino",
-        availableEquipment: ["barbell", "kettlebell", "pull-up bar"],
-        workoutFocus: "Strength & Conditioning",
-        userPreferences: {
-            fitness_level: "intermediate",
-            preferred_training_modality: "CrossFit",
-            training_goal: ["muscle gain", "weight loss", "strength and conditioning", "mobility"],
-            available_equipment: [
-                "45 lb barbell",
-                "35 lb barbell",
-                "Dumbbells",
-                "Bumper Plates weight > 300 lbs",
-                "kettlebells",
-                "jump ropes",
-                "24 inch Ploymetric box",
-                "32 inch Ploymetric box",
-                "pull up bar",
-                "squat rack",
-                "Assault Fitness Assault Bike",
-                "Assault Fitness Treadmill",
-                "Concept 2 Rower"
-            ],
-            preferred_exercises: [
-                "back squats",
-                "front squats",
-                "deadlifts",
-                "rowing",
-                "assault bike",
-                "clean",
-                "power clean",
-                "clean and jerk",
-                "Power Snatch",
-                "snatch",
-                "box jumps",
-                "pull ups",
-                "push ups",
-                "dips",
-                "burpees",
-                "kettlebell swings",
-                "presses",
-                "push presses",
-                "power jerk",
-                "jerk",
-                "hang power clean",
-                "hang power snatch",
-                "weighted or unweighted alternative dumbbell lunges"
-            ]
-        },
-        workoutOptions: {
-            scaling: "moderate or bodyweight",
-            workout_duration:"60 minutes",
-            preferred_training_days:  ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
-            include_warmups: true,
-            include_alternate_movements: true,
-            include_cooldown: true,
-            include_rest_days: true,
-            include_benchmark_workouts: true,
-        }
+    const userProfile = await userCollection.findOne({ id });
+    console.log("User Profile:" + JSON.stringify(userProfile, null, 2));
 
+    let pastResults: WorkoutResult[] = [];
+
+    const workoutOptions: WorkoutOptions = {
+        "scaling": "lighter weight or bodyweight exercises",
+        "includeScalingOptions": true,
+        "workoutPlanDuration": "4 weeks",
+        "workoutDuration": "60 minutes",
+        "workoutFocus": "Strength & Conditioning",
+        "preferredTrainingDays": [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday"
+        ],
+        "includeWarmups": true,
+        "includeAlternateMovements": true,
+        "includeCooldown": true,
+        "includeRestDays": true,
+        "includeBenchmarkWorkouts": true,
+        "periodization": "concurrent"
     };
 
-    const pastResults = [
-        { workout: "Fran", time: "2:45", scaling: "Rx" },
-        { workout: "Back Squat", weight: "450 lbs", reps: "1" },
-        { workout: "Clean & Jerk", weight: "153 kg", reps: "1" },
-        { workout: "Snatch", weight: "123 kg", reps: "1" }
-    ];
+    // const pastResults = [
+        // { workout: "Fran", time: "2:45", scaling: "Rx" },
+        // { workout: "Back Squat", weight: "450 lbs", reps: "1" },
+        // { workout: "Clean & Jerk", weight: "153 kg", reps: "1" },
+        // { workout: "Snatch", weight: "123 kg", reps: "1" }
+    // ];
 
     const continuationToken = null; // Use null initially, test with token later
 
     try {
         // TODO: Consider including personal bests as a parameter to include in the prompts
-        const response = await aiAdapter.generateWorkout("user123", userProfile, pastResults, continuationToken);
+        const response = await aiAdapter.generateWorkout("user123", userProfile, pastResults, continuationToken, workoutOptions);
 
         console.log("Generated Workout Plan:");
         console.log(JSON.stringify(response, null, 2));
