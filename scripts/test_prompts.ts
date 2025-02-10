@@ -8,13 +8,11 @@ async function testGenerateWorkout() {
 
     const userProfile = {
         name: "Zander",
-        age: 25,
+        age: 47,
         sex: "Male",
         weight: "210 lbs",
         height: "5'7\"",
         nationality: "Filipino",
-        availableEquipment: ["barbell", "kettlebell", "pull-up bar"],
-        workoutFocus: "Strength & Conditioning",
         userPreferences: {
             fitness_level: "intermediate",
             preferred_training_modality: "CrossFit",
@@ -63,6 +61,7 @@ async function testGenerateWorkout() {
         workoutOptions: {
             scaling: "moderate or bodyweight",
             workout_duration:"60 minutes",
+            workoutFocus: "Strength & Conditioning",
             preferred_training_days:  ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
             include_warmups: true,
             include_alternate_movements: true,
