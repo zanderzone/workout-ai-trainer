@@ -61,9 +61,12 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
 
         console.log(`missing days ${missingDays}`);
         const MAX_RETRIES = 3;
+        const MAX_REQUESTS = 7 * 3;
+
+        let requestCount = 0;
         let retries = 0;
 
-        while (missingDays.length > 0) {
+        while (missingDays.length > 0 && requestCount < MAX_REQUESTS) {
             const initialPrompt = `You are a professional CrossFit coach designing structured, periodized workout plans in JSON format.
 
         Your task is to generate a well-balanced workout plan that is:
@@ -91,6 +94,7 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
            
             Only return a JSON object matching this schema. No explanations ${workoutSchemaJson}.
             Return a **fully populated** workout plan for week ${currentWeek} only.
+            Return a **fully populated** day for the missing days ${missingDays.join(", ")} only.
             **DO NOT return a JSON schema reference ($ref)**. 
             **DO NOT describe the schema.** 
             **ONLY return valid JSON data.**
@@ -109,17 +113,22 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
 
                 This is a follow-up request to generate the remaining workout plan based on the continuation token provided.
 
-                - Use the same user profile, fitness goals, equipment availability, and training preferences as the original request.
-                - Continue with the same periodization structure and workout distribution.
-                - Ensure the response includes ONLY the remaining training days or weeks based on the token's information.
-                - Do not repeat previous days or regenerate the entire workout plan.
-                - Include the workout plan description, duration, type, and a breakdown of each week's plan.
-                - If relevant, include benchmark workouts and track progress based on past results.
+                - Customized to the user's background, fitness goals, available equipment, and training preferences.
+                - Structured using periodization based on the type specified by the user (e.g., block, linear, undulating).
+                - Inclusive of named CrossFit workouts (e.g., 'The Girls'), benchmark WODs, and randomly generated CrossFit-style workouts.
+                - Designed for the athlete's age, weight, sex, fitness level, injury history, and incorporates exercises that may strengthen weaknesses (if possible).
+                - Covering the full workout plan duration as specified by the user.
+                - Following the user's requested workout frequency (days per week) and ensuring an even distribution of workouts.
+                - Providing complete exercise details, including reps, weight percentage (if applicable), and scaling options.
+                - Including a strength component where applicable and ensuring a well-defined workout of the day (WOD).
                 - If requested by the workout options, include rest-days, warm-ups, main workouts, cooldowns, and post-workout recovery recommendations.
-                - For rest-days, include the workout array field as empty and set type as "Rest Day".
+                - For rest-days, include the workout array field as empty.
+                - If relevant, include benchmark workouts and track progress based on past results.
+                - Include the workout plan description, duration, workout type or style, and a breakdown of each week's plan.
 
                 Only return a JSON object matching this schema. No explanations ${workoutSchemaJson}.
                 Return a **fully populated** workout plan for week ${currentWeek} only.
+                Return a **fully populated** day for the missing days ${missingDays.join(", ")} only.
                 **DO NOT return a JSON schema reference ($ref)**. 
                 **DO NOT describe the schema.** 
                 **ONLY return valid JSON data.**
@@ -127,9 +136,6 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
                 **IF POSSIBLE, return more than 1 day to minimize follow up request for remaining days**
 
                 Continuation Token: ${token || ""} 
-                Current Week: ${currentWeek}
-                Missing Days: ${missingDays.join(", ")}
-
                 User Profile: ${JSON.stringify(userProfile)} 
                 Past Results: ${JSON.stringify(pastResults)} 
                 Periodization: ${JSON.stringify(periodization)}
@@ -171,6 +177,7 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
                 if (retries >= MAX_RETRIES) {
                     throw new Error("Failed to generate a valid workout plan");
                 }
+                requestCount++;
                 continue;
             }
 
@@ -204,7 +211,8 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
                 });
             });
             missingDays = Array.from({ length: 7 }, (_, i) => i + 1).filter(day => !generatedDays.has(day));
-            console.log(`missing days after processing results ${missingDays}`);
+            requestCount++;
+            console.log(`missing days after processing results ${missingDays}, request count ${requestCount}`);
         }
         
         if (!completeWorkoutPlan) {
