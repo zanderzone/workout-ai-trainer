@@ -4,7 +4,14 @@
 
 Workout AI Trainer is an AI-powered system designed to generate structured, periodized workout plans.  Initially focused on CrossFit-style programming, the system leverages user profiles, past workout history, and specific training goals to create progressive and balanced training plans.  The AI incorporates various workout styles, including Olympic lifts, strength training, metabolic conditioning (metcon), and gymnastics.  Future development will explore support for other fitness modalities, such as bodybuilding, powerlifting, running, and yoga.
 
+**Target Audience:** Workout AI Trainer is designed for individuals who:
+
+*   **Train at home with a home gym:**  The system takes into account available equipment to generate appropriate workouts.
+*   **Train at globo gyms but prefer to follow their own programming:**  Workout AI Trainer provides assistance in creating structured and periodized workout plans, allowing users to take control of their training while benefiting from AI guidance.
+
 🚀 **This is an early version of the API, and all use cases have not been fully addressed or identified. The API is a work in progress, and future versions will include improvements in workout generation, UI enhancements, and the expansion of supported fitness modalities.**
+
+**Important Disclaimer:**  While Workout AI Trainer uses AI to generate workout plans based on user input, it is essential to consult with a qualified fitness professional or healthcare provider before beginning any new exercise program.  The information provided by Workout AI Trainer is for informational purposes only and should not be considered a substitute for professional guidance.  Individual results may vary, and engaging in any exercise program carries inherent risks.  By using Workout AI Trainer, you acknowledge and assume these risks.
 
 ## Features
 - **Custom Workout Plans**: Tailors workouts based on the user’s fitness level, available equipment, and goals.
@@ -23,7 +30,6 @@ The following enhancements are planned for future versions:
 - **Mobile Support**: API adjustments for seamless integration into mobile apps.
 - **Expanded Exercise Library**: More detailed breakdowns and scaling options for workouts.
 - **Exponential Backoff**: Support retry thresholds and exponential backoff for AI API requests.
-
 
 ## How It Works
 1. **User Profile & History**: The system takes in user-specific data such as age, fitness level, and past workout performances.
