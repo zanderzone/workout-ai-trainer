@@ -46,6 +46,76 @@ For multi-week workout plans:
 - If some days are missing from the AI response, a continuation request is made for only those missing days.
 - The process repeats until the full program duration is reached.
 
+## Roadmap
+
+This roadmap outlines the planned phases for the Workout AI Trainer project.  It will be updated as the project progresses.
+
+**Phase 1: Minimum Viable Product (MVP) - Core Workout Generation**
+
+*   **Goal:** A functional API endpoint that generates basic, structured CrossFit-style workouts in JSON format. Focus on core functionality.
+*   **Timeline:** 2-4 weeks (adjust as needed)
+*   **Key Features:**
+    *   Workout Generation (Core): Generate workouts with warm-ups, exercises (strength, metcon, gymnastics – start with a *very* limited exercise library), and cool-downs. Focus on structure and JSON schema compliance.
+    *   JSON Schema Definition: Finalize the *strict* JSON schema for workout plans. This is *critical*.
+    *   Basic Endpoint (`/api/workout/generate`): Implement the core endpoint. For the MVP, accept *minimal* input (e.g., a simple training goal).
+    *   Unit Tests: Write unit tests for the workout generation logic and the endpoint.
+*   **Milestones:**
+    *   JSON schema defined and validated.
+    *   Basic workout generation logic implemented.
+    *   `/api/workout/generate` endpoint functional.
+    *   Unit tests passing.
+*   **Database:** In-memory storage, a simple JSON file, or a very basic MongoDB setup.
+
+**Phase 2: User Profiles and Preferences**
+
+*   **Goal:** Enable users to create profiles and store preferences.
+*   **Timeline:** 2-3 weeks
+*   **Key Features:**
+    *   User Management (Basic): User registration, login (basic authentication), and profile updates (fitness level, equipment, goals).
+    *   Workout Generation (Preferences): Modify generation logic to incorporate user preferences (e.g., equipment filtering).
+*   **Milestones:**
+    *   Database schema updated for users and preferences.
+    *   User management endpoints implemented.
+    *   Workout generation updated to use preferences.
+    *   Integration tests for preference-based generation.
+*   **Database:** Commit to MongoDB.
+
+**Phase 3: Workout Tracking and Logging**
+
+*   **Goal:** Allow users to log workouts and track basic progress.
+*   **Timeline:** 3-4 weeks
+*   **Key Features:**
+    *   Workout Tracking & Performance Logging: Endpoints for logging workouts (sets, reps, weights, fatigue).
+    *   Basic Progress Tracking: Basic progress metrics (total weight lifted, workouts completed, PR tracking).
+*   **Milestones:**
+    *   Database schema updated for workout logs.
+    *   Workout logging endpoints implemented.
+    *   Progress calculation logic implemented.
+    *   Basic progress display in API response (or simple UI).
+
+**Phase 4: Adaptive Workouts (and Advanced Features)**
+
+*   **Goal:** Begin implementing adaptive workout adjustments.
+*   **Timeline:** Ongoing
+*   **Key Features:**
+    *   Adaptive Workout Adjustments (Initial Implementation): Progressive overload.
+    *   Periodization: Basic periodization schemes (linear, undulating).
+*   **Milestones:**
+    *   Performance analysis algorithms developed.
+    *   Workout adjustment logic implemented.
+    *   Periodization logic integrated.
+
+**Future Phases (Beyond Phase 4):**
+
+*   Advanced AI Models
+*   Personalization Enhancements
+*   UI and Dashboard
+*   Workout Recovery Recommendations
+*   Database Optimization
+*   Mobile Support
+*   Expanded Exercise Library
+*   Exponential Backoff
+
 ## Installation
 ### Prerequisites
 - Node.js 18+
