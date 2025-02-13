@@ -1,9 +1,10 @@
 # Workout AI Trainer
 
 ## Overview
-Workout AI Trainer is an AI-powered system designed to generate structured, periodized CrossFit workout plans based on user profiles, past workout history, and specific training goals. The AI ensures progressive and balanced training plans, incorporating various workout styles such as Olympic lifts, strength training, metabolic conditioning (metcon), and gymnastics.
 
-🚀 **This is an early version of the API, and all use cases have not been fully addressed or identified. The API is a work in progress, and future versions will include improvements in workout generation and UI enhancements.**
+Workout AI Trainer is an AI-powered system designed to generate structured, periodized workout plans.  Initially focused on CrossFit-style programming, the system leverages user profiles, past workout history, and specific training goals to create progressive and balanced training plans.  The AI incorporates various workout styles, including Olympic lifts, strength training, metabolic conditioning (metcon), and gymnastics.  Future development will explore support for other fitness modalities, such as bodybuilding, powerlifting, running, and yoga.
+
+🚀 **This is an early version of the API, and all use cases have not been fully addressed or identified. The API is a work in progress, and future versions will include improvements in workout generation, UI enhancements, and the expansion of supported fitness modalities.**
 
 ## Features
 - **Custom Workout Plans**: Tailors workouts based on the user’s fitness level, available equipment, and goals.
