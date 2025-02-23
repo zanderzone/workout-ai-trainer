@@ -28,6 +28,9 @@ export async function connectDatabases(app: Application) {
     benchmarkCollection = mongoDb.collection("benchmark_workouts");
     workoutsCollection = mongoDb.collection("workouts");
     workoutResultsCollection = mongoDb.collection("workout_results");
+    workoutResultsCollection.createIndex({ user_id: 1, date: -1 });
+ 
+
 
     app.locals.usersCollection = usersCollection;
     app.locals.benchmarkCollection = benchmarkCollection;

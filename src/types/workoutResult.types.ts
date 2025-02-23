@@ -27,4 +27,7 @@ const workoutResultSchema = z.object({
   additional_notes: z.string().optional()
 });
 
-export { workoutResultSchema };
+// Generate the TypeScript interface from the schema
+type WorkoutResult = z.infer<typeof workoutResultSchema>;
+
+export { workoutResultSchema, WorkoutResult };
