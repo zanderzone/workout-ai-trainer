@@ -1,8 +1,9 @@
 import {Request, Response} from "express";
 import {Collection} from "mongodb";
-import {ContinuationToken, getWorkoutGenerator} from "../services/workout.service";
+import {getWorkoutGenerator} from "../services/workout.service";
 import {createWorkoutSchema, CreateWorkoutDTO} from "../types/workout.types";
 import { WorkoutResult } from "../types/workout.types";
+import { ContinuationToken } from "../types/continuationToken.types";
 
 const workoutController = {
     async createWorkout(req: Request, res: Response): Promise<void> {
@@ -22,10 +23,11 @@ const workoutController = {
 
             const userProfile = await userCollection.findOne({userId});
             const pastResults = await workoutResultsCollection
-            .find<WorkoutResult>({ userId })
-            .sort({ date: -1 })
-            .limit(5)
-            .toArray();
+                .find<WorkoutResult>({ userId })
+                .project({ workoutId: 1, userId: 1, date: 1, results: 1, overallFeeling: 1, modality: 1 })
+                .sort({ date: -1 })
+                .limit(5)
+                .toArray() as WorkoutResult[];
         
 
             if (!workoutId) {

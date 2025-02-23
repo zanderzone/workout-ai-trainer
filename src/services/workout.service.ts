@@ -4,29 +4,12 @@ import OpenAI from "openai";
 import dotenv from "dotenv";
 import {generateUuid} from "../utils/uuid";
 import {WorkoutOptions} from "../types/workoutOptions.types";
+import { ContinuationToken } from "../types/continuationToken.types";
+import { WorkoutAIAdapter } from "../types/workoutAiAdapter.types";
 
 dotenv.config();
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
-
-export interface ContinuationToken {
-    token: string;
-    missingDays: number[];
-    missingWeeks: number[];
-    currentWeek?: number | null;
-    nextWeek?: number | null;
-}
-
-export interface WorkoutAIAdapter {
-    generateWorkout(
-        userId: string,
-        userProfile: any,
-        pastResults: WorkoutResult[],
-        continuationToken?: ContinuationToken | null,
-        workoutOpts?: WorkoutOptions | null,
-        numWeeks?: number
-    ): Promise<{ workoutPlan: WorkoutPlan; continuationToken?: ContinuationToken | null }>;
-}
 
 export function validateAiResponse(response: any): { success: boolean; error?: string } {
     console.log("Validating AI response...");
