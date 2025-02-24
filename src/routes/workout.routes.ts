@@ -4,13 +4,13 @@ import { authenticateJWT } from "../auth";
 
 const router = express.Router();
 
-// Create a new workout
-router.post("/", authenticateJWT, workoutController.createWorkout);
+// Append additional weeks to an existing workout
+router.patch("/:workoutId/next-weeks", authenticateJWT, workoutController.addNextWeeks);
 
 // Fetch an existing workout
-router.get("/:userId", authenticateJWT, workoutController.getWorkout);
+router.get("/:workoutId", authenticateJWT, workoutController.getWorkout);
 
-// Add additional weeks to an existing workout
-router.patch("/:workoutId/next-weeks", authenticateJWT, workoutController.addNextWeeks);
+// Create a new workout
+router.post("/", authenticateJWT, workoutController.createWorkout);
 
 export default router;

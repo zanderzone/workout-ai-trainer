@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { Collection } from "mongodb";
+import { Collection, ObjectId } from "mongodb";
 import { getWorkoutGenerator } from "../services/workout.service";
 import { createWorkoutSchema, CreateWorkoutDTO } from "../types/workout.types";
 import { WorkoutResult } from "../types/workout.types";
@@ -88,6 +88,7 @@ const workoutController = {
     },
 
     async addNextWeeks(req: Request, res: Response): Promise<void> {
+        console.log("Controller: Received request for workoutId:", req.params.workoutId);
         try {
             const { workoutId } = req.params;
             const { numberOfWeeks, workoutOptions } = req.body;
@@ -98,10 +99,16 @@ const workoutController = {
             }
 
             const workoutsCollection = req.app.locals.workoutsCollection;
+
+            // Log to confirm request is reaching here
+            console.log("Controller: Received request for workoutId:", workoutId);
+
             const existingWorkout = await workoutsCollection.findOne({ id: workoutId });
 
+            console.log("Controller: Found existing workout:", existingWorkout);
+
             if (!existingWorkout) {
-                res.status(404).json({ error: "Workout not found" });
+                res.status(404).json({ error: "Workout not found", workoutId });
                 return;
             }
 
@@ -119,27 +126,37 @@ const workoutController = {
                 numberOfWeeks
             );
 
+            console.log("Controller: Generated new weeks:", results);
+
             if (!results || !results.workoutPlan) {
                 res.status(500).json({ error: "Failed to generate next weeks" });
                 return;
             }
+
             // Append new weeks to the existing workout plan
             existingWorkout.workoutPlan = [...existingWorkout.workoutPlan, ...(results.workoutPlan.workoutPlan || [])];
             existingWorkout.continuationToken = results.continuationToken;
 
             // Update workout in database
-            await workoutsCollection.updateOne(
+            const updateResult = await workoutsCollection.updateOne(
                 { id: workoutId },
                 { $set: { workoutPlan: existingWorkout.workoutPlan, continuationToken: existingWorkout.continuationToken } }
             );
 
+            console.log("Controller: Update Result:", updateResult);
+
+            if (updateResult.modifiedCount === 0) {
+                res.status(500).json({ error: "Failed to update workout" });
+                return;
+            }
+
             res.json({ message: `Added ${numberOfWeeks} week(s) to workout`, results: existingWorkout });
-            return;
         } catch (error) {
+            console.error("Controller: Error in addNextWeeks:", error);
             res.status(500).json({ error: "Internal server error" });
-            return;
         }
-    },
+    }
+    ,
 
     async getWorkout(req: Request, res: Response): Promise<void> {
         try {

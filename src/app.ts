@@ -38,6 +38,13 @@ app.use("/workouts", workoutRoutes);
 
 // Start Server
 const PORT = process.env.PORT || 3000;
+
+app._router.stack.forEach((r: any) => {
+    if (r.route && r.route.path) {
+        console.log(`Registered route: ${r.route.path}`);
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
