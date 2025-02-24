@@ -46,8 +46,6 @@ export function generateToken(user: any) {
 
 // Middleware to protect routes
 export function authenticateJWT(req: Request, res: Response, next: NextFunction): void {
-    console.log("Authenticating request");
-    console.log(`Auth Enabled: ${process.env.AUTH_ENABLED}`);
     if (!process.env.AUTH_ENABLED) {
         next();
         return;
