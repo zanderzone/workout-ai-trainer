@@ -121,9 +121,9 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
         - Include a 'continuationToken' with token, currentWeek, missingWeeks, missingDays, and nextWeek.
 
         ## **User Inputs**
-        - **User Profile:** ${JSON.stringify(userProfile)}
-        - **Past Results:** ${JSON.stringify(pastResults)}
-        - **Workout Options:** ${JSON.stringify(workoutOpts)}
+        - **User Profile:** ${JSON.stringify(userProfile), null, 2}
+        - **Past Results:** ${JSON.stringify(pastResults), null, 2}
+        - **Workout Options:** ${JSON.stringify(workoutOpts), null, 2}
         - **Continuation Token:** ${token}`;
     }
 
