@@ -1,9 +1,9 @@
-import {WorkoutPlan, WorkoutResult, aiWorkoutResponseSchema} from "../types/workout.types";
-import {zodToJsonSchema} from "zod-to-json-schema";
+import { WorkoutPlan, WorkoutResult, aiWorkoutResponseSchema } from "../types/workout.types";
+import { zodToJsonSchema } from "zod-to-json-schema";
 import OpenAI from "openai";
 import dotenv from "dotenv";
-import {generateUuid} from "../utils/uuid";
-import {WorkoutOptions} from "../types/workoutOptions.types";
+import { generateUuid } from "../utils/uuid";
+import { WorkoutOptions } from "../types/workoutOptions.types";
 import { ContinuationToken } from "../types/continuationToken.types";
 import { WorkoutAIAdapter } from "../types/workoutAiAdapter.types";
 
@@ -28,7 +28,7 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
     private uuidGenerator: () => string;
 
     constructor(uuidGenerator: () => string = generateUuid) {
-        this.openai = new OpenAI({apiKey: OPENAI_API_KEY});
+        this.openai = new OpenAI({ apiKey: OPENAI_API_KEY });
         this.uuidGenerator = uuidGenerator;
     }
 
@@ -44,7 +44,7 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
         console.log("Generating workout plan...");
         let workoutId = continuationToken?.token || this.uuidGenerator();
         let currentWeek = continuationToken?.currentWeek ?? 1;
-        let weeksToGenerate = Array.from({length: numWeeks}, (_, i) => currentWeek + i);
+        let weeksToGenerate = Array.from({ length: numWeeks }, (_, i) => currentWeek + i);
         let token = continuationToken?.token || workoutId;
         let generatedDays = new Set<number>();
 
@@ -57,16 +57,17 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
         };
 
         for (const week of weeksToGenerate) {
-            let missingDays = Array.from({length: 7}, (_, i) => i + 1);
+            let missingDays = Array.from({ length: 7 }, (_, i) => i + 1);
             let prompt = this.createPrompt(week, missingDays, userProfile, pastResults, workoutOpts, token);
 
+            console.log(`Generating week ${week}...prompt: ${prompt}`);
             try {
                 const response = await this.openai.chat.completions.create({
                     model: "gpt-4-turbo",
-                    messages: [{role: "system", content: prompt}],
+                    messages: [{ role: "system", content: prompt }],
                     temperature: 0.7,
                     max_tokens: 4096,
-                    response_format: {type: "json_object"}
+                    response_format: { type: "json_object" }
                 });
 
                 if (!response.choices[0].message.content) {
@@ -106,12 +107,16 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
         return `You are a professional CrossFit coach generating structured, periodized workout plans in JSON.
 
         ## **Workout Plan Requirements**
+        -**Ensure that the response matches the schema:** ${schemaJson}**
         - Customize for **fitness goals, experience, equipment, injury history**.
         - **Periodized structure**: strength, conditioning, recovery.
         - If applicable for the phase, include **CrossFit benchmarks**.
+        - Include gymnastics, weightlifting, limited unilateral work, core-focused, monostructural exercises where applicable in the phase.
         - Ensure **even distribution** across user-specified training days.
-        - Provide **exercise details**: reps, weight %, scaling.
+        - Ensure **exercise details**: reps, weight %, scaling.
+        - Ensure **clear round/time structure** (e.g., "EMOM 15 Min: Rowing, Wall Balls, Burpees").
         - Always return a **fully populated workout plan** for **week ${week}**.
+        - Ensure workout days are not repetative but follow Crossfit philosophy of **constantly varied functional movements**.
         - Include **days only for ${missingDays.join(", ")}**.
         - Include a 'continuationToken' with token, currentWeek, missingWeeks, missingDays, and nextWeek.
 
@@ -123,22 +128,33 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
     }
 
     private mergeWorkoutPlan(newWorkoutPlan: WorkoutPlan, generatedPlan: any, generatedDays: Set<number>) {
+        if (!generatedPlan || !Array.isArray(generatedPlan.workoutPlan)) {
+            console.error("Invalid AI response: workoutPlan is not an array", generatedPlan);
+            throw new Error("Invalid AI response format: workoutPlan should be an array");
+        }
+
         if (!newWorkoutPlan.workoutProgramDescription) {
-            newWorkoutPlan.workoutProgramDescription = generatedPlan.workoutProgramDescription;
+            newWorkoutPlan.workoutProgramDescription = generatedPlan.workoutProgramDescription || "";
         }
         if (!newWorkoutPlan.workoutPlanDuration) {
-            newWorkoutPlan.workoutPlanDuration = generatedPlan.workoutPlanDuration;
+            newWorkoutPlan.workoutPlanDuration = generatedPlan.workoutPlanDuration || "";
         }
         if (!newWorkoutPlan.workoutPlanType) {
-            newWorkoutPlan.workoutPlanType = generatedPlan.workoutPlanType;
+            newWorkoutPlan.workoutPlanType = generatedPlan.workoutPlanType || "";
         }
 
         generatedPlan.workoutPlan.forEach((weekPlan: any) => {
+            if (!weekPlan || typeof weekPlan !== "object" || !Array.isArray(weekPlan.days)) {
+                console.error("Invalid week plan format", weekPlan);
+                return; // Skip invalid week plans
+            }
+
             let existingWeek = newWorkoutPlan.workoutPlan.find((w) => w.week === weekPlan.week);
             if (!existingWeek) {
-                newWorkoutPlan.workoutPlan.push({...weekPlan, days: []});
+                newWorkoutPlan.workoutPlan.push({ ...weekPlan, days: [] });
                 existingWeek = newWorkoutPlan.workoutPlan.find((w) => w.week === weekPlan.week);
             }
+
             weekPlan.days.forEach((day: any) => {
                 if (!generatedDays.has(day.day)) {
                     existingWeek?.days.push(day);
@@ -147,7 +163,6 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
             });
         });
     }
-
 }
 
 export function getWorkoutGenerator(
