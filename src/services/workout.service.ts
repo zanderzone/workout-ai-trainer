@@ -147,6 +147,7 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
             });
         });
     }
+
 }
 
 export function getWorkoutGenerator(
