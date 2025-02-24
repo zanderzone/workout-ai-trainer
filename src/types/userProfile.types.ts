@@ -2,7 +2,8 @@ import { z } from "zod";
 import { Schema } from "mongoose";
 // Define TypeScript interface for user
 interface UserProfile {
-    userId: string;
+    userId: string;  // OAuth sub ID (from Google/Apple)
+    provider: "google" | "apple";  // Identifies authentication provider
     fitnessLevel?: "beginner" | "intermediate" | "advanced";
     preferredWorkoutDays?: string[];
     goals?: string[];
@@ -12,8 +13,9 @@ interface UserProfile {
     updatedAt: Date;
 }
 
-const userSchemaZod = z.object({
-    userId: z.string().uuid(),
+const userProfileSchema = z.object({
+    userId: z.string(),  // OAuth sub ID (UUID-like)
+    provider: z.enum(["google", "apple"]),
     fitnessLevel: z.enum(["beginner", "intermediate", "advanced"]).optional(),
     preferredWorkoutDays: z.array(z.string()).optional(),
     goals: z.array(z.string()).optional(),
@@ -23,9 +25,9 @@ const userSchemaZod = z.object({
     updatedAt: z.date(),
 });
 
-
 const userSchema = new Schema({
-    userId: { type: String, required: true }, // UUID-based ID, no real-world identifiers
+    userId: { type: String, required: true, unique: true },  // OAuth user ID (sub)
+    provider: { type: String, enum: ["google", "apple"], required: true },  // OAuth provider
     fitnessLevel: { type: String, enum: ["beginner", "intermediate", "advanced"], required: false },
     preferredWorkoutDays: { type: [String], required: false },
     goals: { type: [String], required: false },
@@ -36,4 +38,4 @@ const userSchema = new Schema({
 });
 
 
-export { UserProfile, userSchemaZod, userSchema}
+export { UserProfile, userProfileSchema, userSchema}

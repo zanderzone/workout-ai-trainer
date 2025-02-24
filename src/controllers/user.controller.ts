@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import { Collection } from "mongodb";
 
 const userController = {
     async createUser(req: Request, res: Response) {
