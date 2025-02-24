@@ -1,5 +1,8 @@
 import { MongoClient } from 'mongodb';
 import { v4 as uuidv4 } from 'uuid';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const MONGO_URI: string = process.env.MONGO_URI || "mongodb://localhost:27017/workouts_ai_trainer";
 
@@ -12,170 +15,42 @@ async function populateUsersCollection() {
 
         const userProfiles = [
             {
-                "id": uuidv4(),
-                "name": {
-                    "first": "Jennie",
-                    "last": "de Leon"
-                },
-                "age": 46,
-                "sex": "female",
-                "weight": 180,
-                "height": {
-                    "feet": 5,
-                    "inches": 5
-                },
-                "nationality": "Filipino",
-                "ethnicity": "Asian",
-                "healthConditions": [],
-                "injuryHistory": [],
-                "userPreferences": {
-                    "fitnessLevel": "intermediate",
-                    "preferredTrainingModality": "crossfit",
-                    "trainingGoals": [
-                        "muscle gain",
-                        "weight loss",
-                        "strength and conditioning",
-                        "mobility"
-                    ],
-                    "availableEquipment": [
-                        "45 lb barbell",
-                        "35 lb barbell",
-                        "dumbbells",
-                        "bumper plates weight > 300 lbs",
-                        "kettlebells",
-                        "jump ropes",
-                        "24 inch plyometric box",
-                        "32 inch plyometric box",
-                        "pull up bar",
-                        "squat rack",
-                        "assault fitness assault bike",
-                        "assault fitness treadmill",
-                        "concept 2 rower"
-                    ],
-                    "preferredExercises": [
-                        "back squats",
-                        "front squats",
-                        "deadlifts",
-                        "rowing",
-                        "assault bike",
-                        "clean"
-                    ]
-                }
+                userId: uuidv4(),
+                provider: "google", // Assuming Google or Apple OAuth
+                ageRange: "45-54", // Age stored as a range instead of exact value
+                sex: "female", // Keeping sex for workout customization
+                fitnessLevel: "intermediate",
+                preferredWorkoutDays: ["Monday", "Wednesday", "Friday"],
+                goals: ["muscle gain", "weight loss", "strength and conditioning", "mobility"],
+                equipmentAvailable: [
+                    "45 lb barbell", "35 lb barbell", "dumbbells", "bumper plates weight > 300 lbs",
+                    "kettlebells", "jump ropes", "24 inch plyometric box", "32 inch plyometric box",
+                    "pull up bar", "squat rack", "assault fitness assault bike",
+                    "assault fitness treadmill", "concept 2 rower"
+                ],
+                injuriesOrLimitations: [],
+                createdAt: new Date(),
+                updatedAt: new Date()
             },
             {
-                "id": uuidv4(),
-                "name": {
-                    "first": "Zander",
-                    "last": "de Leon"
-                },
-                "age": 47,
-                "sex": "male",
-                "weight": 210,
-                "height": {
-                    "feet": 5,
-                    "inches": 7
-                },
-                "nationality": "Filipino",
-                "ethnicity": "Asian",
-                "healthConditions": [
-                    "asthma"
+                userId: uuidv4(),
+                provider: "apple",
+                ageRange: "45-54", // Age stored as a range instead of exact value
+                sex: "male", // Keeping sex for workout customization
+                fitnessLevel: "intermediate",
+                preferredWorkoutDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+                goals: ["muscle gain", "athleticism", "endurance", "strength and conditioning"],
+                equipmentAvailable: [
+                    "45 lb barbell", "35 lb barbell", "Dumbbells", "Bumper Plates weight > 300 lbs",
+                    "kettlebells", "jump ropes", "24 inch Plyometric box", "32 inch Plyometric box",
+                    "pull up bar", "squat rack", "Assault Fitness Assault Bike",
+                    "Assault Fitness Treadmill", "Concept 2 Rower"
                 ],
-                "injuryHistory": ["rotator cuff injury"],
-                "userPreferences": {
-                    "fitnessLevel": "intermediate",
-                    "preferredTrainingModality": "crossfit",
-                    "trainingGoals": [
-                        "muscle gain",
-                        "athleticism",
-                        "endurance",
-                        "strength and conditioning"
-                    ],
-                    "workoutOptions": {
-                        "scaling": "lighter weight or bodyweight exercises",
-                        "includeScaling_options": true,
-                        "workoutPlanDuration": "4 weeks",
-                        "workoutDuration": "60 minutes",
-                        "workoutFocus": "Strength & Conditioning",
-                        "preferredTraining_days": [
-                            "Monday",
-                            "Tuesday",
-                            "Wednesday",
-                            "Thursday",
-                            "Friday",
-                            "Saturday",
-                            "Sunday"
-                        ],
-                        "includeWarmups": true,
-                        "includeAlternate_movements": true,
-                        "includeCooldown": true,
-                        "includeRestDays": true,
-                        "includeBenchmarkWorkouts": true
-                    },
-                    "availableEquipment": [
-                        "45 lb barbell",
-                        "35 lb barbell",
-                        "Dumbbells",
-                        "Bumper Plates weight > 300 lbs",
-                        "kettlebells",
-                        "jump ropes",
-                        "24 inch Ploymetric box",
-                        "32 inch Ploymetric box",
-                        "pull up bar",
-                        "squat rack",
-                        "Assault Fitness Assault Bike",
-                        "Assault Fitness Treadmill",
-                        "Concept 2 Rower"
-                    ],
-                    "preferredExercises": [
-                        "back squats",
-                        "front squats",
-                        "deadlifts",
-                        "rowing",
-                        "assault bike",
-                        "clean",
-                        "power clean",
-                        "clean and jerk",
-                        "Power Snatch",
-                        "snatch",
-                        "box jumps",
-                        "pull ups",
-                        "push ups",
-                        "dips",
-                        "burpees",
-                        "kettlebell swings",
-                        "presses",
-                        "push presses",
-                        "power jerk",
-                        "jerk",
-                        "hang power clean",
-                        "hang power snatch",
-                        "weighted or unweighted alternative dumbbell lunges"
-                    ]
-                }
+                injuriesOrLimitations: ["rotator cuff injury"],
+                createdAt: new Date(),
+                updatedAt: new Date()
             }
-        ]
-
-        const workoutOpts =                     {
-            "scaling": "lighter weight or bodyweight exercises",
-            "includeScaling_options": true,
-            "workoutPlanDuration": "4 weeks",
-            "workoutDuration": "60 minutes",
-            "workoutFocus": "Strength & Conditioning",
-            "preferredTraining_days": [
-                "Monday",
-                "Tuesday",
-                "Wednesday",
-                "Thursday",
-                "Friday",
-                "Saturday",
-                "Sunday"
-            ],
-            "includeWarmups": true,
-            "includeAlternate_movements": true,
-            "includeCooldown": true,
-            "includeRestDays": true,
-            "includeBenchmarkWorkouts": true
-        };
+        ];
 
         // Insert multiple user profiles
         await userCollection.insertMany(userProfiles);
