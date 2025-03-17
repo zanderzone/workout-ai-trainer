@@ -1,0 +1,121 @@
+Workout AI Trainer - MVP (v0.1):
+
+Sprint 1 - Core Auth & Basic UI (1 week, 20 hours):
+☐ User Authentication:
+    ☐ Add authentication middleware @P0 @5h @id(auth) @sprint(1)
+        Notes: JWT-based auth for user sessions
+    ☐ Implement user registration endpoint @P0 @3h @id(user-reg) @sprint(1)
+        Notes: Email/password registration
+    ☐ Implement user login endpoint @P0 @2h @id(user-login) @depends(auth) @sprint(1)
+        Notes: JWT token generation and validation
+
+☐ Basic UI Setup:
+    ☐ Create React/Next.js project structure @P0 @2h @id(ui-setup) @sprint(1)
+        Notes: TypeScript + Tailwind CSS setup
+    ☐ Implement registration page @P0 @3h @id(reg-page) @depends(ui-setup) @sprint(1)
+        Notes: Form with email/password fields
+    ☐ Implement login page @P0 @3h @id(login-page) @depends(ui-setup) @sprint(1)
+        Notes: Form with email/password fields
+    ☐ Add protected route wrapper @P0 @2h @id(protected-routes) @depends(login-page) @sprint(1)
+        Notes: Redirect unauthorized users to login
+
+Sprint 2 - Core WOD Features (1 week, 25 hours):
+☐ Essential Error Handling:
+    ☐ Add proper error handling for database connection failures @P0 @2h @id(db-error) @sprint(2)
+        Notes: Critical for application stability
+    ☐ Add proper error handling for OpenAI API failures @P0 @3h @id(openai-error) @sprint(2)
+        Notes: Essential as OpenAI is the core service
+    ☐ Add basic input validation @P0 @2h @id(basic-valid) @sprint(2)
+        Notes: Prevent invalid WOD requests
+
+☐ WOD Generation UI:
+    ☐ Create WOD request form @P0 @4h @id(wod-form) @sprint(2)
+        Notes: Form with essential workout preferences
+    ☐ Implement WOD display component @P0 @3h @id(wod-display) @sprint(2)
+        Notes: Display generated workout details
+    ☐ Add WOD history page @P0 @3h @id(wod-history) @sprint(2)
+        Notes: List of user's past workouts
+    ☐ Add loading states and basic error messages @P0 @2h @id(ui-feedback) @sprint(2)
+        Notes: User feedback during API calls
+
+☐ API Integration:
+    ☐ Implement basic rate limiting for OpenAI API @P0 @3h @id(basic-rate-limit) @sprint(2)
+        Notes: Prevent API quota exhaustion
+    ☐ Add TypeScript types for API responses @P0 @3h @id(types) @sprint(2)
+        Notes: Type safety for API integration
+
+Sprint Summary:
+Sprint 1 (20h): Core Auth & Basic UI
+- Focus: User authentication and basic UI setup
+- Key Deliverables: Registration, login, protected routes
+- Dependencies: None
+
+Sprint 2 (25h): Core WOD Features
+- Focus: Essential WOD generation and display
+- Key Deliverables: WOD form, display, history, basic error handling
+- Dependencies: Authentication from Sprint 1
+
+Total MVP Time: 45 hours
+MVP Duration: 2 weeks
+
+Future Improvements (v0.2):
+☐ Enhanced Features:
+    ☐ Add request timeout handling @P1 @2h
+    ☐ Add retry logic for failed API calls @P1 @3h
+    ☐ Add rate limiting per user @P1 @3h
+    ☐ Implement request batching @P2 @5h
+    ☐ Add response caching @P2 @4h
+
+☐ AI Coach Profiles Feature:
+    ☐ Design coach personality system @P1 @6h @id(coach-design)
+        Notes: Define coach attributes, personality traits, and experience templates
+    ☐ Create coach profile database schema @P1 @3h @id(coach-schema) @depends(coach-design)
+        Notes: Store coach backgrounds, specialties, and system prompts
+    ☐ Implement coach profile management API @P1 @4h @id(coach-api) @depends(coach-schema)
+        Notes: CRUD operations for coach profiles
+    ☐ Add coach selection UI @P1 @5h @id(coach-ui) @depends(coach-api)
+        Notes: Browse and select coaches with personality previews
+    ☐ Enhance WOD generation with coach personalities @P1 @8h @id(coach-wod) @depends(coach-api)
+        Notes: Integrate coach's background into LLM prompt
+    ☐ Add coach feedback system @P2 @6h @id(coach-feedback) @depends(coach-wod)
+        Notes: Personalized feedback based on coach's style
+    ☐ Create sample coach profiles @P1 @4h @id(coach-samples) @depends(coach-design)
+        Notes: Define 5-10 distinct coach personalities
+        Examples:
+        - "The Motivator": High-energy, positive reinforcement
+        - "The Veteran": Ex-military, disciplined approach
+        - "The Scientist": Data-driven, scientific explanations
+        - "The Competitor": Former athlete, competition-focused
+        - "The Holistic Coach": Mind-body wellness approach
+
+☐ Testing & Documentation:
+    ☐ Add test suite for API endpoints @P1 @8h
+    ☐ Add API documentation using OpenAPI/Swagger @P2 @4h
+    ☐ Add proper JSDoc comments @P3 @2h
+
+☐ UI Enhancements:
+    ☐ Add user profile page @P2 @4h
+    ☐ Add workout preferences page @P2 @4h
+    ☐ Add exercise library @P2 @6h
+    ☐ Add progress tracking @P2 @8h
+    ☐ Add coach profile customization page @P2 @5h
+        Notes: Allow users to save preferred coaches
+
+☐ Performance & Security:
+    ☐ Add input sanitization @P1 @2h
+    ☐ Add request size limits @P2 @1h
+    ☐ Add logging middleware @P2 @3h
+    ☐ Implement advanced error handling @P2 @4h
+
+Total v0.2 Time: ~93 hours
+Key Features:
+- Enhanced error handling and performance
+- AI Coach personality system
+- Improved UI and user experience
+- Comprehensive testing and documentation
+
+Archive:
+  ✔ Add OpenAIError interface for type safety @done(2024-03-20)
+  ✔ Fix error handling in createWod @done(2024-03-20)
+  ✔ Implement basic WOD creation endpoint @done(2024-03-20)
+  ✔ Implement basic WOD retrieval endpoint @done(2024-03-20) 
