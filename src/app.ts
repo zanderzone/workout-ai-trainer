@@ -6,6 +6,7 @@ import session from "express-session";
 import { config } from "dotenv";
 import OpenAI from "openai";
 import { connectDatabases } from "./services/database.service";
+import wodRoutes from "./routes/wod.routes";
 
 config();
 
@@ -33,8 +34,9 @@ import workoutRoutes from "./routes/workout.routes";
 app.use(session({ secret: process.env.SESSION_SECRET!, resave: false, saveUninitialized: true }));
 app.use(passport.initialize());
 app.use(passport.session());
-app.use("/users",  userRoutes);
+app.use("/users", userRoutes);
 app.use("/workouts", workoutRoutes);
+app.use("/wod", wodRoutes);
 
 // Start Server
 const PORT = process.env.PORT || 3000;

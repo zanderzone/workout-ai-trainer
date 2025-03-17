@@ -74,6 +74,12 @@ export class OpenAIWorkoutAdapter implements WodAIAdapter {
         console.log("Prompt:", prompt);
 
         try {
+            // TODO: Add rate limiting
+            // TODO: Add retry logic
+            // TODO: Add timeout logic
+            // TODO: Add batching logic
+            // TODO: Add caching logic
+
             const response = await this.openai.chat.completions.create({
                 model: "gpt-4-turbo",
                 messages: [{ role: "system", content: prompt }],

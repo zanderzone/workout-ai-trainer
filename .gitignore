@@ -53,3 +53,5 @@ generated_data/
 # docker volume mounts
 docker/data/mongodb
 docker/data/postgres
+test-results/*.json
+test-results/*.txt
