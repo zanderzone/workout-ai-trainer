@@ -3,8 +3,8 @@ import { Schema } from "mongoose";
 
 // Define TypeScript interface for user
 interface UserProfile {
-    userId: string;  // OAuth sub ID (from Google/Apple)
-    provider: "google" | "apple";  // Identifies authentication provider
+    userId?: string;  // OAuth sub ID (from Google/Apple)
+    provider?: "google" | "apple";  // Identifies authentication provider
     ageRange?: "18-24" | "25-34" | "35-44" | "45-54" | "55+"; // Age stored as a range instead of exact value
     sex?: "male" | "female" | "other";  // Sex stored for workout customization
     fitnessLevel?: "beginner" | "intermediate" | "advanced";
@@ -12,8 +12,8 @@ interface UserProfile {
     goals?: string[];
     equipmentAvailable?: string[];
     injuriesOrLimitations?: string[];
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt?: Date;
+    updatedAt?: Date;
 }
 
 // Define Zod schema for validation

@@ -108,7 +108,7 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
 
         ## **Workout Plan Requirements**
         -**Ensure that the response matches the schema:** ${schemaJson}**
-        - Customize for **fitness goals, experience, equipment, injury history**.
+        - Customize for **fitness goals, experience, available equipment, injury history**.
         - **Periodized structure**: strength, conditioning, recovery.
         - If applicable for the phase, include **CrossFit benchmarks**.
         - Include gymnastics, weightlifting, limited unilateral work, core-focused, monostructural exercises where applicable in the phase.

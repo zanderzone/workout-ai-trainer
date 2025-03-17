@@ -1,89 +1,102 @@
 import { Application } from "express";
-// import knex from "knex";
-import { MongoClient, Db, Collection } from "mongodb";
+import { MongoClient, Db, Collection, ObjectId } from "mongodb";
 import { workoutResultSchema, WorkoutPlan, workoutPlanDBSchema } from "../types/workout.types";
-// import { generateUuid } from "../utils/uuid";
+import { AiWodSchema, Wod, wodMongoSchema } from "../types/wod.types";
+import { generateUuid } from "../utils/uuid";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const MONGO_URI: string = process.env.MONGO_URI || "mongodb://mongo:27017";
+const MONGODB_URI: string = process.env.MONGODB_URI || "mongodb://mongo:27017";
 
 let usersCollection: Collection;
 let workoutsCollection: Collection;
 let workoutResultsCollection: Collection;
 let benchmarkCollection: Collection;
-
-// const db = knex({
-//     client: "pg",
-//     connection: POSTGRES_URI,
-//     pool: { min: 2, max: 10 },
-// });
+let wodCollection: Collection;
 
 export async function connectDatabases(app: Application) {
-    const mongoClient = new MongoClient(MONGO_URI);
-    await mongoClient.connect();
-    const mongoDb: Db = mongoClient.db("workouts_ai_trainer");
-    usersCollection = mongoDb.collection("users");
-    benchmarkCollection = mongoDb.collection("benchmark_workouts");
-    workoutsCollection = mongoDb.collection("workouts");
-    workoutResultsCollection = mongoDb.collection("workout_results");
-    workoutResultsCollection.createIndex({ user_id: 1, date: -1 });
- 
+  const mongoClient = new MongoClient(MONGODB_URI);
+  await mongoClient.connect();
+  const mongoDb: Db = mongoClient.db("workouts_ai_trainer");
+  usersCollection = mongoDb.collection("users");
+  benchmarkCollection = mongoDb.collection("benchmark_workouts");
+  workoutsCollection = mongoDb.collection("workouts");
+  workoutResultsCollection = mongoDb.collection("workout_results");
+  workoutResultsCollection.createIndex({ user_id: 1, date: -1 });
+  wodCollection = mongoDb.collection("wod");
 
+  app.locals.usersCollection = usersCollection;
+  app.locals.benchmarkCollection = benchmarkCollection;
+  app.locals.workoutsCollection = workoutsCollection;
+  app.locals.workoutResultsCollection = workoutResultsCollection;
+  app.locals.wodCollection = wodCollection;
+  // app.locals.db = db;
+}
 
-    app.locals.usersCollection = usersCollection;
-    app.locals.benchmarkCollection = benchmarkCollection;
-    app.locals.workoutsCollection = workoutsCollection;
-    app.locals.workoutResultsCollection = workoutResultsCollection;
-    // app.locals.db = db;
+export async function saveWod(wod: AiWodSchema, userId: string): Promise<void> {
+  const wodWithMetadata = {
+    _id: new ObjectId(),
+    uuid: generateUuid(),
+    userId,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...wod
+  };
+
+  const validation = Wod.safeParse(wodWithMetadata);
+  if (!validation.success) {
+    console.error("Validation errors:", validation.error);
+    throw new Error("Invalid WOD JSON structure");
+  }
+
+  try {
+    await wodCollection.insertOne(wodWithMetadata);
+  } catch (error) {
+    console.error("Error saving WOD:", error);
+    throw new Error("Failed to save WOD to database");
+  }
 }
 
 export async function saveWorkout(workout: WorkoutPlan, workoutId?: string): Promise<void> {
-    // Validate the workout plan against the schema
-    const validation = workoutPlanDBSchema.safeParse(workout);
+  // Validate the workout plan against the schema
+  const validation = workoutPlanDBSchema.safeParse(workout);
 
-    if (!validation.success) {
-        throw new Error("Invalid workout JSON structure");
+  if (!validation.success) {
+    throw new Error("Invalid workout JSON structure");
+  }
+
+  try {
+    if (workoutId) {
+      // Update existing workout with a new week
+      const existingWorkout = await workoutsCollection.findOne({ workout_id: workoutId });
+
+      if (existingWorkout) {
+        // Extract the existing workout plan and append the new week's workout
+        const updatedWorkoutPlan = [
+          ...existingWorkout.workoutPlan,
+          ...workout.workoutPlan,
+        ];
+
+        // Update the workout in the database
+        await workoutsCollection.updateOne(
+          { workout_id: workoutId },
+          { $set: { workout_plan: updatedWorkoutPlan } },
+        );
+      } else {
+        // Handle case where workoutId is provided but no existing workout is found
+        throw new Error(`Workout with ID ${workoutId} not found`);
+      }
+    } else {
+      // Insert a new workout into the database
+      await workoutsCollection.insertOne(workout);
     }
-
-    try {
-        if (workoutId) {
-            // Update existing workout with a new week
-            const existingWorkout = await workoutsCollection.findOne({ workout_id: workoutId });
-
-            if (existingWorkout) {
-                // Extract the existing workout plan and append the new week's workout
-                const updatedWorkoutPlan = [
-                  ...existingWorkout.workoutPlan,
-                  ...workout.workoutPlan,
-                ];
-
-                // Update the workout in the database
-                await workoutsCollection.updateOne(
-                    { workout_id: workoutId },
-                    { $set: { workout_plan: updatedWorkoutPlan } },
-                );
-            } else {
-                // Handle case where workoutId is provided but no existing workout is found
-                throw new Error(`Workout with ID ${workoutId} not found`);
-            }
-        } else {
-            // Insert a new workout into the database
-            await workoutsCollection.insertOne(workout);
-        }
-    } catch (error) {
-        // Handle database errors appropriately
-        console.error("Error saving workout:", error);
-        throw error; // Re-throw the error to be handled by the caller
-    }
+  } catch (error) {
+    // Handle database errors appropriately
+    console.error("Error saving workout:", error);
+    throw error; // Re-throw the error to be handled by the caller
+  }
 }
-
-// export async function getWorkout(userId: string) {
-    // const result = await db("workouts").where({ user_id: userId }).select("plan").first();
-    // return result || null;
-// }
-
 
 export async function saveWorkoutResult(userId: string, workoutId: string, workoutResult: any): Promise<void> {
   const validation = workoutResultSchema.safeParse(workoutResult);
@@ -94,7 +107,7 @@ export async function saveWorkoutResult(userId: string, workoutId: string, worko
   try {
     // Add workout_id and user_id to the workoutResult object
     const workoutResultWithIds = {
-    ...workoutResult,
+      ...workoutResult,
       workout_id: workoutId,
       user_id: userId,
       completed_at: new Date(), // Add completed_at timestamp

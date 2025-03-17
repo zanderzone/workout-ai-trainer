@@ -5,7 +5,7 @@ FROM node:18 AS builder
 WORKDIR /app
 
 # Copy package.json and package-lock.json for faster dependency installation
-COPY package*.json ./
+COPY ../package*.json ./
 
 # Install dependencies
 RUN npm install
@@ -22,9 +22,9 @@ FROM node:18
 WORKDIR /app
 
 # Copy only necessary files from the build stage
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY package.json ./
+COPY --from=builder /app/dist ../dist
+COPY --from=builder /app/node_modules ../node_modules
+COPY ../package.json ./
 
 # Set environment variables
 ENV NODE_ENV=production
@@ -33,4 +33,4 @@ ENV NODE_ENV=production
 EXPOSE 3000
 
 # Start the application
-CMD ["node", "dist/src/app.js"]
+CMD ["node", "../dist/src/app.js"]

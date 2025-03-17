@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // Common Schema Components
-const activitySchema = z.object({
+export const activitySchema = z.object({
     activity: z.string().optional(),
     duration: z.string().optional(),
     intensity: z.string().optional(),
@@ -19,7 +19,7 @@ const activitySchema = z.object({
     ).optional(),
 });
 
-const workoutExerciseSchema = z.object({
+export const workoutExerciseSchema = z.object({
     exercise: z.string(),
     reps: z.string().optional(),
     rounds: z.string().optional(),
@@ -37,13 +37,13 @@ const workoutExerciseSchema = z.object({
     personalBestReference: z.boolean().optional(),
 });
 
-const warmupCooldownSchema = z.object({
+export const warmupCooldownSchema = z.object({
     type: z.string(),
     duration: z.string().optional(),
     activities: z.array(activitySchema).optional(),
 }).optional();
 
-const workoutDaySchema = z.object({
+export const workoutDaySchema = z.object({
     day: z.number(),
     periodization: z.object({
         phase: z.string(),
@@ -62,7 +62,7 @@ const workoutDaySchema = z.object({
     recovery: z.string().optional(),
 });
 
-const workoutPlanSchema = z.object({
+export const workoutPlanSchema = z.object({
     week: z.number(),
     periodization: z.object({
         type: z.string(),
