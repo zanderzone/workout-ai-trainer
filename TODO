@@ -5,12 +5,12 @@ Workout AI Trainer - MVP (v0.1):
     User Authentication:
       ✔ Create GCP Project @done(2024-03-18)
       ✔ Create Google OAUTH Credentials for project @done(2024-03-18)
-      ☐ Create Apple OAUTH Credentials for project
+      ☐ Create Apple OAUTH Credentials for project @started(2024-03-18 10:00) @paused
         Notes: Apple Developer Account Required.  My Apple developer account is pending approval (24-48 hours).
-      ☐ Add authentication middleware @P0 @5h @id(auth) @sprint(1) @started(2024-03-18 09:54)
-          Notes: JWT-based auth for user sessions
+      ☐ Add authentication middleware @P0 @5h @id(auth) @sprint(1) @started(2024-03-18 09:54) @paused
+          Notes: JWT-based auth for user sessions. Paused until Apple Developer account is approved.
       ☐ Implement user registration endpoint @P0 @3h @id(user-reg) @sprint(1)
-          Notes: Email/password registration
+          Notes: Email/password registration. Paused until authentication middleware is complete.
       ☐ Implement user login endpoint @P0 @2h @id(user-login) @depends(auth) @sprint(1)
           Notes: JWT token generation and validation
     
