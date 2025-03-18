@@ -1,16 +1,23 @@
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
-import { UserProfile } from '../src/types/userProfile.types';
+import { BaseUser } from '../src/types/user.types';
 import { WorkoutOptions } from '../src/types/workoutOptions.types';
 
 const API_URL = 'http://localhost:3000';
 
-const userProfile: UserProfile = {
+const userProfile: BaseUser = {
+    providerId: uuidv4(),
+    email: "test@example.com",
+    provider: "google",
+    firstName: "Test",
+    lastName: "User",
     ageRange: "45-54",
     sex: "male",
     fitnessLevel: "intermediate",
     goals: ["weight loss", "strength", "athletic conditioning"],
-    injuriesOrLimitations: ["left knee tightness"]
+    injuriesOrLimitations: ["left knee tightness"],
+    createdAt: new Date(),
+    updatedAt: new Date()
 };
 
 const workoutOptions: WorkoutOptions = {
@@ -32,9 +39,8 @@ const workoutOptions: WorkoutOptions = {
 
 async function testWodRequest() {
     try {
-        const userId = uuidv4();
         const response = await axios.post(`${API_URL}/wod`, {
-            userId,
+            userId: userProfile.providerId,
             userProfile,
             workoutOptions
         });

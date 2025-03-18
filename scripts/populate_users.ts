@@ -1,6 +1,7 @@
 import { MongoClient } from 'mongodb';
 import { v4 as uuidv4 } from 'uuid';
 import dotenv from 'dotenv';
+import { BaseUser } from '../src/types/user.types';
 
 dotenv.config();
 
@@ -13,39 +14,31 @@ async function populateUsersCollection() {
         const mongoDb = mongoClient.db("workouts_ai_trainer");
         const userCollection = mongoDb.collection("users");
 
-        const userProfiles = [
+        const userProfiles: BaseUser[] = [
             {
-                userId: uuidv4(),
-                provider: "google", // Assuming Google or Apple OAuth
-                ageRange: "45-54", // Age stored as a range instead of exact value
-                sex: "female", // Keeping sex for workout customization
+                providerId: uuidv4(),
+                email: "test1@example.com",
+                provider: "google",
+                firstName: "Jane",
+                lastName: "Doe",
+                ageRange: "45-54",
+                sex: "female",
                 fitnessLevel: "intermediate",
-                preferredWorkoutDays: ["Monday", "Wednesday", "Friday"],
                 goals: ["muscle gain", "weight loss", "strength and conditioning", "mobility"],
-                equipmentAvailable: [
-                    "45 lb barbell", "35 lb barbell", "dumbbells", "bumper plates weight > 300 lbs",
-                    "kettlebells", "jump ropes", "24 inch plyometric box", "32 inch plyometric box",
-                    "pull up bar", "squat rack", "assault fitness assault bike",
-                    "assault fitness treadmill", "concept 2 rower"
-                ],
                 injuriesOrLimitations: [],
                 createdAt: new Date(),
                 updatedAt: new Date()
             },
             {
-                userId: uuidv4(),
+                providerId: uuidv4(),
+                email: "test2@example.com",
                 provider: "apple",
-                ageRange: "45-54", // Age stored as a range instead of exact value
-                sex: "male", // Keeping sex for workout customization
+                firstName: "John",
+                lastName: "Smith",
+                ageRange: "45-54",
+                sex: "male",
                 fitnessLevel: "intermediate",
-                preferredWorkoutDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
                 goals: ["muscle gain", "athleticism", "endurance", "strength and conditioning"],
-                equipmentAvailable: [
-                    "45 lb barbell", "35 lb barbell", "Dumbbells", "Bumper Plates weight > 300 lbs",
-                    "kettlebells", "jump ropes", "24 inch Plyometric box", "32 inch Plyometric box",
-                    "pull up bar", "squat rack", "Assault Fitness Assault Bike",
-                    "Assault Fitness Treadmill", "Concept 2 Rower"
-                ],
                 injuriesOrLimitations: ["rotator cuff injury"],
                 createdAt: new Date(),
                 updatedAt: new Date()
