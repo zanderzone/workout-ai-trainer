@@ -1,14 +1,13 @@
 Workout AI Trainer - MVP (v0.1):
 
-  Sprint 1 - Core Auth & Basic UI (1 week, 20 hours):
-    WOD API:
-      ☐ Implement WOD pagination @P0 @4h @id(wod-pagination) @sprint(1)
-          Notes: Limit and offset for pagination
-      ☐ Add date range filter for WODs @P0 @3h @id(wod-date-filter) @sprint(1)
-          Notes: Filter WODs by creation date range
+ Sprint 1 - Core Auth & Basic UI (1 week, 20 hours):
     
     User Authentication:
-      ☐ Add authentication middleware @P0 @5h @id(auth) @sprint(1)
+      ✔ Create GCP Project @done(2024-03-18)
+      ✔ Create Google OAUTH Credentials for project @done(2024-03-18)
+      ☐ Create Apple OAUTH Credentials for project
+        Notes: Apple Developer Account Required.  My Apple developer account is pending approval (24-48 hours).
+      ☐ Add authentication middleware @P0 @5h @id(auth) @sprint(1) @started(2024-03-18 09:54)
           Notes: JWT-based auth for user sessions
       ☐ Implement user registration endpoint @P0 @3h @id(user-reg) @sprint(1)
           Notes: Email/password registration
@@ -26,6 +25,11 @@ Workout AI Trainer - MVP (v0.1):
           Notes: Redirect unauthorized users to login
     
   Sprint 2 - Core WOD Features (1 week, 25 hours):
+    WOD API:
+      ☐ Implement WOD pagination @P0 @4h @id(wod-pagination) @sprint(1)
+          Notes: Limit and offset for pagination
+      ☐ Add date range filter for WODs @P0 @3h @id(wod-date-filter) @sprint(1)
+          Notes: Filter WODs by creation date range
     Essential Error Handling:
         ☐ Add proper error handling for database connection failures @P0 @2h @id(db-error) @sprint(2)
             Notes: Critical for application stability
@@ -52,13 +56,13 @@ Workout AI Trainer - MVP (v0.1):
   
   Sprint Summary:
   Sprint 1 (20h): WOD GET API, Core Auth & Basic UI
-  - Focus: GET all user WODs, User authentication and basic UI setup
-  - Key Deliverables: Registration, login, protected routes, WOD GET API with pagination and date range filter
+  - Focus: User authentication and basic UI setup
+  - Key Deliverables: Registration, login, protected routes
   - Dependencies: None
   
   Sprint 2 (25h): Core WOD Features
-  - Focus: Essential WOD generation and display
-  - Key Deliverables: WOD form, display, history, basic error handling
+  - Focus: Essential WOD generation and display, WOD API (GET all user WODs)
+  - Key Deliverables: WOD form, display, history, basic error handling, WOD API (GET all user WODs)
   - Dependencies: Authentication from Sprint 1
   
   Total MVP Time: 45 hours

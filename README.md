@@ -2,258 +2,291 @@
 
 ## Overview
 
-Workout AI Trainer is an AI-powered system designed to generate structured, periodized workout plans.  Initially focused on CrossFit-style programming, the system leverages user profiles, past workout history, and specific training goals to create progressive and balanced training plans.  The AI incorporates various workout styles, including Olympic lifts, strength training, metabolic conditioning (metcon), and gymnastics.  Future development will explore support for other fitness modalities, such as bodybuilding, powerlifting, running, and yoga.
+Workout AI Trainer is an AI-powered system that generates personalized CrossFit-style Workouts of the Day (WODs). The system uses OpenAI's models to create varied, challenging workouts based on user profiles, available equipment, and fitness goals. Each WOD includes a warm-up, main workout, and cool-down, with appropriate scaling options for different fitness levels.
 
-**Currently we only support OpenAI models due to my familiarity with the product.  Further investigation is needed in open source models or lower cost options.**
+## Core Features
 
-**Target Audience:** Workout AI Trainer is designed for individuals who:
+### 1. Personalized WOD Generation
+- Creates daily workouts based on user's:
+  - Fitness level (beginner, intermediate, advanced)
+  - Available equipment
+  - Training goals
+  - Injury history and limitations
+  - Age and sex
 
-*   **Train at home with a home gym:**  The system takes into account available equipment to generate appropriate workouts.
-*   **Train at globo gyms but prefer to follow their own programming:**  Workout AI Trainer provides assistance in creating structured and periodized workout plans, allowing users to take control of their training while benefiting from AI guidance.
+### 2. CrossFit-Style Programming
+- Mix of strength, conditioning, and gymnastics movements
+- Benchmark workout integration
+- Varied functional movements
+- Appropriate intensity and volume based on user profile
 
-🚀 **This is an early version of the API, and all use cases have not been fully addressed or identified. The API is a work in progress, and future versions will include improvements in workout generation, UI enhancements, and the expansion of supported fitness modalities.**
+### 3. Equipment-Aware
+- Filters exercises based on available equipment
+- Provides scaling options for different equipment setups
+- Works with home gyms and commercial gyms
+- Alternative movements when equipment is in use
 
-**Important Disclaimer:**  While Workout AI Trainer uses AI to generate workout plans based on user input, it is essential to consult with a qualified fitness professional or healthcare provider before beginning any new exercise program.  The information provided by Workout AI Trainer is for informational purposes only and should not be considered a substitute for professional guidance.  Individual results may vary, and engaging in any exercise program carries inherent risks.  By using Workout AI Trainer, you acknowledge and assume these risks.
+### 4. Safety & Accessibility
+- Includes scaling options for all exercises
+- Provides alternative movements when needed
+- Considers injury history and limitations
+- Emphasizes proper form and progression
 
-## Features
-- **Custom Workout Plans**: Tailors workouts based on the user’s fitness level, available equipment, and goals.
-- **Periodization Support**: Supports structured programming such as block, linear, and undulating periodization.
-- **Adaptive Scheduling**: Generates workouts for a given week and only proceeds to the next week when all workouts are completed or skipped.
-- **Continuity Tracking**: Uses a `continuationToken` to track remaining workouts and ensure training progress.
-- **JSON Schema Compliance**: Ensures AI-generated plans conform to a strict schema for consistency.
+## Use Cases
 
-## Future Improvements
-The following enhancements are planned for future versions:
-- **Prompts**: Improving prompts to generate consistent and complete response is a work in progress.
-- **Advanced AI Models**: Integration with multiple AI models to improve workout recommendations.
-- **Personalization Enhancements**: Better adaptation based on user performance and past progress.
-- **UI and Dashboard**: Development of a frontend interface for users to track their workouts.
-- **Workout Recovery Recommendations**: Smarter recommendations for rest, mobility work, and injury prevention.
-- **Database Optimization**: Improved handling of workout data with caching for faster responses.
-- **Mobile Support**: API adjustments for seamless integration into mobile apps.
-- **Expanded Exercise Library**: More detailed breakdowns and scaling options for workouts.
-- **Exponential Backoff**: Support retry thresholds and exponential backoff for AI API requests.
+### 1. Home Gym Training
+- Generate WODs based on available equipment
+- Structured daily workouts without a coach
+- Consistent programming for steady progress
 
-## How It Works
-1. **User Profile & History**: The system takes in user-specific data such as age, fitness level, and past workout performances.
-2. **Workout Plan Generation**: The AI generates a workout plan, covering only the missing days for the current week.
-3. **Validation**: The response is validated against the predefined JSON schema using `zod`.
-4. **Progression Tracking**: The system waits for workout completion before advancing to the next week.
+### 2. Commercial Gym Training
+- Custom WODs that work with available equipment
+- Alternative movements when equipment is in use
+- Self-guided training with proper structure
 
-## Schema & Validation
-Workout plans must conform to a predefined **JSON schema** to ensure consistency and completeness. The schema is validated using `zod`. A valid workout plan includes:
-- **Workout Program Metadata**: Description, duration, and type.
-- **Structured Weekly Plans**: Each week consists of multiple training days.
-- **Workouts per Day**: Includes warm-ups, strength training, metcons, cooldowns, and recovery recommendations.
-- **Continuation Tokens**: Tracks missing workouts to ensure users complete one week before advancing to the next.
+### 3. CrossFit-Style Training
+- Daily varied functional movements
+- Mix of strength, conditioning, and gymnastics
+- Benchmark workout integration
+- Scaling options for all fitness levels
 
-Every AI-generated response is checked against this schema, and invalid responses are logged for debugging.
+## Future Implementation
 
-## How Workouts Are Requested (Multi-Week Plans)
-For multi-week workout plans:
-- Only **one week** of workouts is requested at a time.
-- Users must complete or skip all workouts in a given week before the next week is requested.
-- If some days are missing from the AI response, a continuation request is made for only those missing days.
-- The process repeats until the full program duration is reached.
+### Phase 1: Enhanced Personalization
+- Integration with more AI models
+- Better adaptation based on workout performance
+- Expanded exercise library
+- More detailed movement descriptions
 
-## Roadmap
+### Phase 2: User Experience
+- Web dashboard for WOD tracking
+- Mobile app support
+- Progress visualization
+- Workout logging and history
 
-This roadmap outlines the planned phases for the Workout AI Trainer project.  It will be updated as the project progresses.
+### Phase 3: Advanced Features
+- Support for additional fitness modalities
+- Recovery recommendations
+- Nutrition guidance
+- Social features and sharing
 
-**Phase 1: Minimum Viable Product (MVP) - Core Workout Generation**
+### Phase 4: Performance Optimization
+- Caching and database optimization
+- API performance improvements
+- Better error handling
+- Rate limiting and backoff strategies
 
-*   **Goal:** A functional API endpoint that generates basic, structured CrossFit-style workouts in JSON format. Focus on core functionality.
-*   **Timeline:** 2-4 weeks (adjust as needed)
-*   **Key Features:**
-    *   Workout Generation (Core): Generate workouts with warm-ups, exercises (strength, metcon, gymnastics – start with a *very* limited exercise library), and cool-downs. Focus on structure and JSON schema compliance.
-    *   JSON Schema Definition: Finalize the *strict* JSON schema for workout plans. This is *critical*.
-    *   Basic Endpoint (`/api/workout/generate`): Implement the core endpoint. For the MVP, accept *minimal* input (e.g., a simple training goal).
-    *   Unit Tests: Write unit tests for the workout generation logic and the endpoint.
-*   **Milestones:**
-    *   JSON schema defined and validated.
-    *   Basic workout generation logic implemented.
-    *   `/api/workout/generate` endpoint functional.
-    *   Unit tests passing.
-*   **Database:** In-memory storage, a simple JSON file, or a very basic MongoDB setup.
+## Technical Requirements
 
-**Phase 2: User Profiles and Preferences**
-
-*   **Goal:** Enable users to create profiles and store preferences.
-*   **Timeline:** 2-3 weeks
-*   **Key Features:**
-    *   User Management (Basic): User registration, login (basic authentication), and profile updates (fitness level, equipment, goals).
-    *   Workout Generation (Preferences): Modify generation logic to incorporate user preferences (e.g., equipment filtering).
-*   **Milestones:**
-    *   Database schema updated for users and preferences.
-    *   User management endpoints implemented.
-    *   Workout generation updated to use preferences.
-    *   Integration tests for preference-based generation.
-*   **Database:** Commit to MongoDB.
-
-**Phase 3: Workout Tracking and Logging**
-
-*   **Goal:** Allow users to log workouts and track basic progress.
-*   **Timeline:** 3-4 weeks
-*   **Key Features:**
-    *   Workout Tracking & Performance Logging: Endpoints for logging workouts (sets, reps, weights, fatigue).
-    *   Basic Progress Tracking: Basic progress metrics (total weight lifted, workouts completed, PR tracking).
-*   **Milestones:**
-    *   Database schema updated for workout logs.
-    *   Workout logging endpoints implemented.
-    *   Progress calculation logic implemented.
-    *   Basic progress display in API response (or simple UI).
-
-**Phase 4: Adaptive Workouts (and Advanced Features)**
-
-*   **Goal:** Begin implementing adaptive workout adjustments.
-*   **Timeline:** Ongoing
-*   **Key Features:**
-    *   Adaptive Workout Adjustments (Initial Implementation): Progressive overload.
-    *   Periodization: Basic periodization schemes (linear, undulating).
-*   **Milestones:**
-    *   Performance analysis algorithms developed.
-    *   Workout adjustment logic implemented.
-    *   Periodization logic integrated.
-
-**Future Phases (Beyond Phase 4):**
-
-*   Advanced AI Models
-*   Personalization Enhancements
-*   UI and Dashboard
-*   Workout Recovery Recommendations
-*   Database Optimization
-*   Mobile Support
-*   Expanded Exercise Library
-*   Exponential Backoff
-
-## Installation
-### Prerequisites
 - Node.js 18+
 - TypeScript
 - OpenAI API Key
-- PostgreSQL (optional for logging)
+- MongoDB (for user profiles and workout storage)
+- Docker (optional, for running MongoDB locally)
 
-### **Connecting to the Databases**
-#### **PostgreSQL**
-- Use the following command to connect to the PostgreSQL database inside the container:
-   ```sh
-   docker exec -it postgres-local psql -U postgres -d workouts
-   ```
-- To check running containers:
-   ```sh
-   docker ps
-   ```
+## Local Environment Setup
 
-#### **MongoDB**
-- Connect to the MongoDB shell:
-   ```sh
-   docker exec -it mongo-local mongosh
-   ```
-- List available databases:
-   ```sh
-   show dbs
-   ```
-   
-### Setup
+### Prerequisites
+
+1. Install Node.js 18+ from [nodejs.org](https://nodejs.org/)
+2. Install MongoDB:
+   - Option 1: Download and install from [MongoDB Community Server](https://www.mongodb.com/try/download/community)
+   - Option 2: Use Docker (recommended):
+     ```sh
+     docker run -d -p 27017:27017 --name mongo-local mongo:latest
+     ```
+
+3. Get an OpenAI API key from [OpenAI](https://platform.openai.com/api-keys)
+
+### Project Setup
+
 1. Clone the repository:
    ```sh
    git clone https://github.com/yourusername/workout-ai-trainer.git
    cd workout-ai-trainer
    ```
+
 2. Install dependencies:
    ```sh
    npm install
    ```
-3. Create a `.env` file and set your OpenAI API key:
+
+3. Set up environment variables:
    ```sh
-   OPENAI_API_KEY=your-api-key-here
+   cp .env.example .env
    ```
-4. Run the service:
+   Edit `.env` with your configuration:
+   ```
+   OPENAI_API_KEY=your-api-key-here
+   MONGO_URI=mongodb://localhost:27017/workouts_ai_trainer
+   PORT=3000
+   NODE_ENV=development
+   ```
+
+4. Initialize the database:
+   ```sh
+   # Populate the database with sample users
+   npx ts-node scripts/populate_users.ts
+   ```
+
+5. Start the development server:
    ```sh
    npm run dev
    ```
 
-## API Usage
-### Generate a Workout Plan
-**Endpoint:** `POST /api/workout/generate`
+### Testing
 
-**Request Body:**
-```json
-{
-  "userId": "12345",
-  "userProfile": {
-    "fitnessLevel": "Intermediate",
-    "availableEquipment": ["barbell", "kettlebell", "pull-up bar"],
-    "workoutFocus": "Strength & Conditioning"
-  },
-  "pastResults": [
-    { "workout": "Fran", "time": "4:35", "scaling": "Rx" },
-    { "workout": "Back Squat", "weight": "225 lbs", "reps": "5" }
-  ],
-  "continuationToken": null
-}
-```
+1. Run the test suite:
+   ```sh
+   npm test
+   ```
 
-**Response:**
-```json
-{
-  "workoutPlan": {
-    "workout_plan": [
-      {
-        "week": 1,
-        "days": [
-          {
-            "day": 1,
-            "warmup": { "type": "dynamic", "duration": "10 minutes" },
-            "workout": { "type": "strength", "exercises": [{ "exercise": "Back Squat", "reps": "5", "rounds": "5", "weight": "80% 1RM" }] },
-            "cooldown": { "type": "stretching", "duration": "10 minutes" }
-          }
-        ]
-      }
-    ]
-  },
-  "continuationToken": { "token": "abc123", "missingDays": [2, 3, 4, 5, 6, 7], "currentWeek": 1 }
-}
-```
+2. Run specific test files:
+   ```sh
+   # Test WOD generation
+   npx ts-node scripts/testWodGeneration.ts
+   
+   # Test WOD scenarios
+   npx ts-node scripts/testWodScenarios.ts
+   
+   # Test prompts
+   npx ts-node scripts/test_prompts.ts
+   ```
 
-## Generated Workout Plan
-The AI-generated workout plan can be accessed in detail in the **[Generated Workout](docs/generated_workout.md)** file.
+### Development Tools
 
-## Running `test_prompts.ts`
-The `test_prompts.ts` script allows fine-tuning of AI-generated prompts before integration. To run it:
+- **TypeScript**: The project uses TypeScript for type safety and better development experience
+- **ESLint**: Code linting is configured for consistent code style
+- **Prettier**: Code formatting is handled by Prettier
+- **Vitest**: Testing framework for unit and integration tests
+
+### Common Issues
+
+1. **MongoDB Connection Issues**:
+   - Ensure MongoDB is running: `docker ps` (if using Docker)
+   - Check connection string in `.env`
+   - Verify MongoDB port (default: 27017)
+
+2. **OpenAI API Issues**:
+   - Verify API key in `.env`
+   - Check API key permissions
+   - Ensure sufficient API credits
+
+3. **TypeScript Errors**:
+   - Run `npm run build` to check for type errors
+   - Ensure all dependencies are installed
+
+## Development Workflow
+
+### Branch Strategy
+
+1. Create a feature branch:
+   ```sh
+   git checkout -b feature/your-feature-name
+   ```
+
+2. Make your changes and commit:
+   ```sh
+   git add .
+   git commit -m "feat: description of your changes"
+   ```
+
+3. Push to your branch:
+   ```sh
+   git push origin feature/your-feature-name
+   ```
+
+4. Create a Pull Request:
+   - Use the PR template if available
+   - Include a description of changes
+   - Link any related issues
+   - Request your own review
+
+5. Review your changes:
+   - Check the diff
+   - Run tests locally
+   - Verify the changes work as expected
+
+6. Merge to main:
+   ```sh
+   git checkout main
+   git merge feature/your-feature-name
+   git push origin main
+   ```
+
+### Commit Message Guidelines
+
+Use conventional commits format:
+- `feat:` for new features
+- `fix:` for bug fixes
+- `docs:` for documentation changes
+- `style:` for formatting changes
+- `refactor:` for code refactoring
+- `test:` for adding or modifying tests
+- `chore:` for maintenance tasks
+
+Example:
 ```sh
-npx ts-node scripts/test_prompts.ts
-```
-Modify the test prompt file to adjust parameters such as user profile, past results, and continuation tokens to debug AI responses effectively.
-
-## Automatically Generating `.gitignore`
-To prevent unnecessary files from being committed, the repository includes a `.gitignore` file. You can generate one using:
-```sh
-npx gitignore node
-```
-Alternatively, manually create `.gitignore` and include:
-```
-# Node dependencies
-node_modules/
-package-lock.json
-yarn.lock
-
-# Environment variables
-.env
-
-# Build output
-dist/
-
-# Logs
-logs/
-*.log
+git commit -m "feat: add scaling options for pull-ups"
+git commit -m "fix: resolve MongoDB connection timeout"
+git commit -m "docs: update README with new setup instructions"
 ```
 
-## Contributing
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
+### Testing Before PR
 
-## License
-This project is licensed under the MIT License.
+1. Run the test suite:
+   ```sh
+   npm test
+   ```
+
+2. Run specific test files:
+   ```sh
+   # Test WOD generation
+   npx ts-node scripts/testWodGeneration.ts
+   
+   # Test WOD scenarios
+   npx ts-node scripts/testWodScenarios.ts
+   
+   # Test prompts
+   npx ts-node scripts/test_prompts.ts
+   ```
+
+3. Check for type errors:
+   ```sh
+   npm run build
+   ```
+
+4. Verify database changes:
+   ```sh
+   # Test database population
+   npx ts-node scripts/populate_users.ts
+   ```
+
+## Getting Started
+
+1. Clone the repository:
+   ```sh
+   git clone https://github.com/yourusername/workout-ai-trainer.git
+   cd workout-ai-trainer
+   ```
+
+2. Install dependencies:
+   ```sh
+   npm install
+   ```
+
+3. Set up environment variables:
+   ```sh
+   cp .env.example .env
+   # Edit .env with your OpenAI API key
+   ```
+
+4. Start the development server:
+   ```sh
+   npm run dev
+   ```
+
+## Important Disclaimer
+
+While Workout AI Trainer uses AI to generate WODs, it is essential to consult with a qualified fitness professional or healthcare provider before beginning any new exercise program. The information provided is for informational purposes only and should not be considered a substitute for professional guidance.
 
