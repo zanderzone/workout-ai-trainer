@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import { MongoClient } from "mongodb";
 import { WorkoutResult } from "../src/types/workout.types";
 import { WorkoutOptions } from "../src/types/workoutOptions.types";
+import { BaseUser } from "../src/types/user.types";
 
 dotenv.config();
 
@@ -16,7 +17,7 @@ async function testGenerateWorkout() {
     const userCollection = mongoDb.collection("users");
 
     // Fetch a user profile from the database (assume the first user in the collection)
-    const userProfile = await userCollection.findOne({});
+    const userProfile = await userCollection.findOne({}) as unknown as BaseUser;
     if (!userProfile) {
         console.error("No user profiles found in the database. Run populate_users.ts first.");
         return;
@@ -47,7 +48,7 @@ async function testGenerateWorkout() {
 
     try {
         const response = await aiAdapter.generateWorkout(
-            userProfile.userId, // Use OAuth userId from the fetched user
+            userProfile.providerId, // Use providerId instead of userId
             userProfile,
             pastResults,
             continuationToken,

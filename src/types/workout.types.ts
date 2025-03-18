@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { Schema } from "mongoose";
+import { ObjectId } from "mongodb";
 
 // Common Schema Components
 export const activitySchema = z.object({
@@ -87,32 +89,38 @@ export const aiWorkoutResponseSchema = z.object({
     workoutPlan: z.array(workoutPlanSchema),
 });
 
-export const workoutPlanDBSchema = z.object({
-    id: z.string(),
-    workoutProgramDescription: z.string(),
-    workoutPlanDuration: z.string(),
-    workoutPlanType: z.string(),
-    continuationToken: z.object({
-        token: z.string(),
-        currentWeek: z.number().optional(),
-        missingDays: z.array(z.number()),
-        missingWeeks: z.array(z.number()),
-    }).optional(),
-    workoutPlan: z.array(workoutPlanSchema),
-});
-
 export type GeneratedWorkoutPlan = z.infer<typeof aiWorkoutResponseSchema>;
-export type WorkoutPlan = z.infer<typeof workoutPlanDBSchema>;
+export type WorkoutPlanWeek = z.infer<typeof workoutPlanSchema>;
+export type WorkoutPlanDB = z.infer<typeof workoutPlanDBSchema>;
 
 // Workout Result Schema
-export const workoutResultSchema = z.object({
-    workoutId: z.string(),
-    userId: z.string(),
-    date: z.string().datetime({ offset: true }),
-    modality: z.string(),
-});
+export interface WorkoutResult {
+    _id?: ObjectId | string;
+    userId: string;
+    workoutId: string;
+    date: Date;
+    modality: string;
+    results?: {
+        exercise: string;
+        sets?: {
+            reps: number;
+            weight?: number;
+            notes?: string;
+        }[];
+        scaling?: string;
+        roundsCompleted?: number;
+        timeTaken?: string;
+    }[];
+    createdAt: Date;
+    updatedAt: Date;
+}
 
-export const crossfitResultSchema = workoutResultSchema.extend({
+export const workoutResultSchema = z.object({
+    _id: z.union([z.string(), z.instanceof(ObjectId)]).optional(),
+    userId: z.string(),
+    workoutId: z.string(),
+    date: z.date(),
+    modality: z.string(),
     results: z.array(
         z.object({
             exercise: z.string(),
@@ -127,10 +135,31 @@ export const crossfitResultSchema = workoutResultSchema.extend({
             roundsCompleted: z.number().int().positive().optional(),
             timeTaken: z.string().optional(),
         })
-    ),
+    ).optional(),
+    createdAt: z.date(),
+    updatedAt: z.date()
 });
 
-export type WorkoutResult = z.infer<typeof workoutResultSchema>;
+export const workoutResultMongoSchema = new Schema<WorkoutResult>({
+    _id: { type: String, required: false },
+    userId: { type: String, required: true },
+    workoutId: { type: String, required: true },
+    date: { type: Date, required: true },
+    modality: { type: String, required: true },
+    results: [{
+        exercise: { type: String, required: true },
+        sets: [{
+            reps: { type: Number, required: true },
+            weight: { type: Number, required: false },
+            notes: { type: String, required: false }
+        }],
+        scaling: { type: String, required: false },
+        roundsCompleted: { type: Number, required: false },
+        timeTaken: { type: String, required: false }
+    }],
+    createdAt: { type: Date, required: true, default: Date.now },
+    updatedAt: { type: Date, required: true, default: Date.now }
+});
 
 export const workoutOptionsSchema = z.object({
     scaling: z.string().default("bodyweight"),
@@ -155,3 +184,20 @@ export const createWorkoutSchema = z.object({
 });
 
 export type CreateWorkoutDTO = z.infer<typeof createWorkoutSchema>;
+
+export const workoutPlanDBSchema = z.object({
+    _id: z.union([z.string(), z.instanceof(ObjectId)]).optional(),
+    id: z.string(),
+    workoutProgramDescription: z.string(),
+    workoutPlanDuration: z.string(),
+    workoutPlanType: z.string(),
+    continuationToken: z.object({
+        token: z.string(),
+        currentWeek: z.number().optional(),
+        missingDays: z.array(z.number()),
+        missingWeeks: z.array(z.number()),
+    }).optional(),
+    workoutPlan: z.array(workoutPlanSchema),
+    createdAt: z.date(),
+    updatedAt: z.date()
+});

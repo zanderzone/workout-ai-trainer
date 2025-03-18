@@ -7,6 +7,7 @@ import { config } from "dotenv";
 import OpenAI from "openai";
 import { connectDatabases } from "./services/database.service";
 import wodRoutes from "./routes/wod.routes";
+import authRoutes from "./routes/auth.routes";
 
 config();
 
@@ -27,13 +28,27 @@ connectDatabases(app);
 // OpenAI API
 app.locals.openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
+// Session configuration
+app.use(session({
+    secret: process.env.SESSION_SECRET!,
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+}));
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
 // API Routes
 import userRoutes from "./routes/user.routes";
 import workoutRoutes from "./routes/workout.routes";
 
-app.use(session({ secret: process.env.SESSION_SECRET!, resave: false, saveUninitialized: true }));
-app.use(passport.initialize());
-app.use(passport.session());
+app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/workouts", workoutRoutes);
 app.use("/wod", wodRoutes);

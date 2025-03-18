@@ -97,11 +97,11 @@ export class OpenAIWorkoutAdapter implements WodAIAdapter {
             // Add MongoDB required fields
             const wodWithMetadata: Wod = {
                 _id: wodId,
+                wodId: wodId,
                 description: generatedWod.description,
                 userId,
                 createdAt: new Date(),
                 updatedAt: new Date(),
-                duration: generatedWod.duration,
                 wod: generatedWod.wod
             };
 

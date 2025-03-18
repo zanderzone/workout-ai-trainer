@@ -1,4 +1,4 @@
-import { WorkoutPlan, WorkoutResult, aiWorkoutResponseSchema } from "../types/workout.types";
+import { WorkoutPlanDB, WorkoutResult, aiWorkoutResponseSchema } from "../types/workout.types";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import OpenAI from "openai";
 import dotenv from "dotenv";
@@ -39,7 +39,7 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
         continuationToken?: ContinuationToken | null,
         workoutOpts?: WorkoutOptions | null,
         numWeeks: number = 1
-    ): Promise<{ workoutPlan: WorkoutPlan; continuationToken?: ContinuationToken | null }> {
+    ): Promise<{ workoutPlan: WorkoutPlanDB; continuationToken?: ContinuationToken | null }> {
 
         console.log("Generating workout plan...");
         let workoutId = continuationToken?.token || this.uuidGenerator();
@@ -48,12 +48,14 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
         let token = continuationToken?.token || workoutId;
         let generatedDays = new Set<number>();
 
-        let newWorkoutPlan: WorkoutPlan = {
+        let newWorkoutPlan: WorkoutPlanDB = {
             id: workoutId,
             workoutProgramDescription: "",
             workoutPlanDuration: "",
             workoutPlanType: "",
-            workoutPlan: []
+            workoutPlan: [],
+            createdAt: new Date(),
+            updatedAt: new Date()
         };
 
         for (const week of weeksToGenerate) {
@@ -127,7 +129,7 @@ export class OpenAIWorkoutAdapter implements WorkoutAIAdapter {
         - **Continuation Token:** ${token}`;
     }
 
-    private mergeWorkoutPlan(newWorkoutPlan: WorkoutPlan, generatedPlan: any, generatedDays: Set<number>) {
+    private mergeWorkoutPlan(newWorkoutPlan: WorkoutPlanDB, generatedPlan: any, generatedDays: Set<number>) {
         if (!generatedPlan || !Array.isArray(generatedPlan.workoutPlan)) {
             console.error("Invalid AI response: workoutPlan is not an array", generatedPlan);
             throw new Error("Invalid AI response format: workoutPlan should be an array");

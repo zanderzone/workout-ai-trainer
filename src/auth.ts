@@ -3,13 +3,15 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Strategy as AppleStrategy } from "passport-apple";
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
+import { User, BaseUser } from "./types/user.types";
 import dotenv from "dotenv";
+import { Collection } from "mongodb";
 
 dotenv.config();
 
 // User serialization
-passport.serializeUser((user, done) => done(null, user));
-passport.deserializeUser((obj: any, done) => done(null, obj));
+passport.serializeUser((user: BaseUser, done) => done(null, user));
+passport.deserializeUser((obj: BaseUser, done) => done(null, obj));
 
 // Google OAuth Strategy
 passport.use(new GoogleStrategy(
@@ -18,8 +20,37 @@ passport.use(new GoogleStrategy(
         clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
         callbackURL: "/auth/google/callback",
     },
-    (accessToken, refreshToken, profile, done) => {
-        return done(null, { id: profile.id, provider: "google", email: profile.emails?.[0].value });
+    async (accessToken, refreshToken, profile, done) => {
+        try {
+            const userCollection: Collection<User> = (global as any).userCollection;
+            if (!userCollection) {
+                throw new Error('Database connection not initialized');
+            }
+
+            // Check if user exists
+            let user = await userCollection.findOne({ email: profile.emails?.[0].value });
+
+            if (!user) {
+                // Create new user
+                const newUser: BaseUser = {
+                    providerId: profile.id,
+                    email: profile.emails?.[0].value!,
+                    provider: 'google',
+                    firstName: profile.name?.givenName,
+                    lastName: profile.name?.familyName,
+                    profilePicture: profile.photos?.[0].value,
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                };
+
+                const result = await userCollection.insertOne(newUser as User);
+                user = result as unknown as User;
+            }
+
+            return done(null, user);
+        } catch (error) {
+            return done(error as Error);
+        }
     }
 ));
 
@@ -33,15 +64,53 @@ passport.use(new AppleStrategy(
         callbackURL: "/auth/apple/callback",
         passReqToCallback: true
     },
-    (req, accessToken, refreshToken, idToken, profile, done) => {
-        const decodedToken = jwt.decode(idToken) as { email: string };
-        return done(null, { id: profile.id, provider: "apple", email: decodedToken.email });
+    async (req, accessToken, refreshToken, idToken, profile, done) => {
+        try {
+            const userCollection: Collection<User> = (global as any).userCollection;
+            if (!userCollection) {
+                throw new Error('Database connection not initialized');
+            }
+
+            const decodedToken = jwt.decode(idToken) as { email: string };
+            const email = decodedToken.email;
+
+            // Check if user exists
+            let user = await userCollection.findOne({ email });
+
+            if (!user) {
+                // Create new user
+                const newUser: BaseUser = {
+                    providerId: profile.id,
+                    email,
+                    provider: 'apple',
+                    firstName: profile.name?.firstName,
+                    lastName: profile.name?.lastName,
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                };
+
+                await userCollection.insertOne(newUser as User);
+                user = newUser as User;
+            }
+
+            return done(null, user);
+        } catch (error) {
+            return done(error as Error);
+        }
     }
 ));
 
 // Generate JWT for user
-export function generateToken(user: any) {
-    return jwt.sign(user, process.env.JWT_SECRET!, { expiresIn: "7d" });
+export function generateToken(user: User) {
+    return jwt.sign(
+        {
+            providerId: user.providerId,
+            email: user.email,
+            provider: user.provider
+        },
+        process.env.JWT_SECRET!,
+        { expiresIn: "7d" }
+    );
 }
 
 // Middleware to protect routes
@@ -58,9 +127,9 @@ export function authenticateJWT(req: Request, res: Response, next: NextFunction)
         return;
     }
 
-    jwt.verify(token, process.env.JWT_SECRET!, (err, user) => {
+    jwt.verify(token, process.env.JWT_SECRET!, (err, decoded) => {
         if (err) return res.status(403).json({ error: "Invalid token" });
-        req.user = user;
+        (req as any).user = decoded;
         next();
     });
 }

@@ -1,7 +1,6 @@
-import { WorkoutResult } from "./workoutResult.types";
+import { WorkoutResult, WorkoutPlanDB } from "./workout.types";
 import { ContinuationToken } from "./continuationToken.types";
 import { WorkoutOptions } from "./workoutOptions.types";
-import { WorkoutPlan } from "./workout.types";
 
 export interface WorkoutAIAdapter {
     generateWorkout(
@@ -11,5 +10,5 @@ export interface WorkoutAIAdapter {
         continuationToken?: ContinuationToken | null,
         workoutOpts?: WorkoutOptions | null,
         numWeeks?: number
-    ): Promise<{ workoutPlan: WorkoutPlan; continuationToken?: ContinuationToken | null }>;
+    ): Promise<{ workoutPlan: WorkoutPlanDB; continuationToken?: ContinuationToken | null }>;
 }

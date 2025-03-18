@@ -2,13 +2,18 @@ import { OpenAIWorkoutAdapter } from "../src/services/wod.service";
 import { WorkoutOptions } from "../src/types/workoutOptions.types";
 import { UserProfile } from "../src/types/userProfile.types";
 import { v4 as uuidv4 } from 'uuid';
+
 // Mock user profile and workout options
+const userId = uuidv4();
 const userProfile: UserProfile = {
+    userId,
     ageRange: "45-54",
     sex: "male",
     fitnessLevel: "beginner",
     goals: ["weight loss", "strength", "athletic conditioning", "endurance", "hypertrophy"],
-    injuriesOrLimitations: ["left knee tightness"]
+    injuriesOrLimitations: ["left knee tightness"],
+    createdAt: new Date(),
+    updatedAt: new Date()
 };
 
 const workoutOptions: WorkoutOptions = {
@@ -34,7 +39,6 @@ const workoutOptions: WorkoutOptions = {
     includeExcercises: [],
     excludeExcercises: [],
     wodRequestTime: "7:30 PM"
-
 };
 
 // Instantiate the OpenAIWorkoutAdapter
@@ -42,11 +46,6 @@ const workoutAdapter = new OpenAIWorkoutAdapter();
 
 async function testGenerateWod() {
     try {
-        const userId = uuidv4();
-        userProfile.userId = userId;
-        const currentTime = new Date();
-        const currentTimeString = currentTime.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
-
         const result = await workoutAdapter.generateWod(userId, userProfile, workoutOptions);
         console.log("Generated WOD:", JSON.stringify(result, null, 2));
     } catch (error) {
