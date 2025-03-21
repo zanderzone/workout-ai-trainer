@@ -15,6 +15,9 @@ export interface BaseUser {
     fitnessLevel?: "beginner" | "intermediate" | "advanced";
     goals?: string[];
     injuriesOrLimitations?: string[];
+    // Token management
+    refreshToken?: string;
+    tokenExpiresAt?: Date;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -48,6 +51,9 @@ export const userSchema = z.object({
     fitnessLevel: z.enum(["beginner", "intermediate", "advanced"]).optional(),
     goals: z.array(z.string()).optional(),
     injuriesOrLimitations: z.array(z.string()).optional(),
+    // Token management
+    refreshToken: z.string().optional(),
+    tokenExpiresAt: z.date().optional(),
     createdAt: z.date(),
     updatedAt: z.date()
 });
@@ -65,6 +71,9 @@ export const userMongoSchema = new Schema({
     fitnessLevel: { type: String, enum: ["beginner", "intermediate", "advanced"], default: undefined },
     goals: { type: [String], default: undefined },
     injuriesOrLimitations: { type: [String], default: undefined },
+    // Token management
+    refreshToken: { type: String, select: false }, // Not included in default queries
+    tokenExpiresAt: Date,
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 }, {

@@ -6,6 +6,7 @@ import { Request, Response, NextFunction } from "express";
 import { User, BaseUser } from "./types/user.types";
 import dotenv from "dotenv";
 import { Collection } from "mongodb";
+import { appleConfig } from "./config/apple.config";
 
 dotenv.config();
 
@@ -57,11 +58,11 @@ passport.use(new GoogleStrategy(
 // Apple OAuth Strategy
 passport.use(new AppleStrategy(
     {
-        clientID: process.env.APPLE_CLIENT_ID!,
-        teamID: process.env.APPLE_TEAM_ID!,
-        keyID: process.env.APPLE_KEY_ID!,
-        privateKeyLocation: process.env.APPLE_PRIVATE_KEY_PATH!,
-        callbackURL: "/auth/apple/callback",
+        clientID: appleConfig.clientId!,
+        teamID: appleConfig.teamId!,
+        keyID: appleConfig.keyId!,
+        privateKeyLocation: appleConfig.privateKeyLocation!,
+        callbackURL: appleConfig.callbackUrl!,
         passReqToCallback: true
     },
     async (req, accessToken, refreshToken, idToken, profile, done) => {
@@ -101,12 +102,14 @@ passport.use(new AppleStrategy(
 ));
 
 // Generate JWT for user
-export function generateToken(user: User) {
+export function generateToken(user: BaseUser) {
     return jwt.sign(
         {
             providerId: user.providerId,
             email: user.email,
-            provider: user.provider
+            provider: user.provider,
+            refreshToken: user.refreshToken,
+            tokenExpiresAt: user.tokenExpiresAt
         },
         process.env.JWT_SECRET!,
         { expiresIn: "7d" }

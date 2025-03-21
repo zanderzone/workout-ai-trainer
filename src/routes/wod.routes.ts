@@ -1,9 +1,15 @@
-import { Router } from 'express';
+import express from 'express';
+import { authenticateJWT, validateSession } from '../middleware/auth.middleware';
 import wodController from '../controllers/wod.controller';
+import asyncHandler from 'express-async-handler';
 
-const router = Router();
+const router = express.Router();
 
-router.post('/wod', wodController.createWod);
-router.get('/wod/:id', wodController.getWod);
+// Apply authentication middleware to all routes
+router.use(authenticateJWT, validateSession);
+
+// WOD routes
+router.post('/', asyncHandler(wodController.createWod));
+router.get('/:id', asyncHandler(wodController.getWod));
 
 export default router;

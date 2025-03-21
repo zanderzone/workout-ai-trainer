@@ -1,17 +1,16 @@
 Workout AI Trainer - MVP (v0.1):
 
- Sprint 1 - Core Auth & Basic UI (1 week, 20 hours):
-    
+  Sprint 1 - Core Auth & Basic UI (1 week, 20 hours):
     User Authentication:
       ✔ Create GCP Project @done(2024-03-18)
       ✔ Create Google OAUTH Credentials for project @done(2024-03-18)
-      ☐ Create Apple OAUTH Credentials for project @started(2024-03-18 10:00) @paused
+      ✔ Create Apple OAUTH Credentials for project @started(25-03-18 09:34) @done(25-03-20 22:40) @lasted(2d13h6m16s)
         Notes: Apple Developer Account Required.  My Apple developer account is pending approval (24-48 hours).
-      ☐ Add authentication middleware @P0 @5h @id(auth) @sprint(1) @started(2024-03-18 09:54) @paused
+      ✔ Add authentication middleware @P0 @5h @id(auth) @sprint(1) @started(2024-03-18 09:54) @done(25-03-20 22:40) @lasted(5y3d12h46m18s)
           Notes: JWT-based auth for user sessions. Paused until Apple Developer account is approved.
-      ☐ Implement user registration endpoint @P0 @3h @id(user-reg) @sprint(1)
+      ✔ Implement user registration endpoint @P0 @3h @id(user-reg) @sprint(1) @done(25-03-20 22:40)
           Notes: Email/password registration. Paused until authentication middleware is complete.
-      ☐ Implement user login endpoint @P0 @2h @id(user-login) @depends(auth) @sprint(1)
+      ✔ Implement user login endpoint @P0 @2h @id(user-login) @depends(auth) @sprint(1) @done(25-03-20 22:40)
           Notes: JWT token generation and validation
     
     Basic UI Setup:
@@ -51,6 +50,14 @@ Workout AI Trainer - MVP (v0.1):
     API Integration:
         ☐ Implement basic rate limiting for OpenAI API @P0 @3h @id(basic-rate-limit) @sprint(2)
             Notes: Prevent API quota exhaustion
+            Subtasks:
+            - Implement token-based rate limiting for OpenAI API calls
+            - Set up monitoring for OpenAI API usage
+            - Add error handling for rate limit exceeded
+            - Implement exponential backoff strategy
+            - Add logging for rate limit events
+            - Consider implementing a queue system for high-demand periods
+
         ☐ Add TypeScript types for API responses @P0 @3h @id(types) @sprint(2)
             Notes: Type safety for API integration
   
@@ -73,9 +80,31 @@ Workout AI Trainer - MVP (v0.1):
       ☐ Add request timeout handling @P1 @2h
       ☐ Add retry logic for failed API calls @P1 @3h
       ☐ Add rate limiting per user @P1 @3h
-      ☐ Implement request batching @P2 @5h
-      ☐ Add response caching @P2 @4h
-  
+          Notes: Implement Redis-based rate limiting with endpoint-specific rules
+          Subtasks:
+          - WOD Generation Rate Limiting (P0)
+            * Limit to 3 WOD generations per user per day (midnight to midnight)
+            * Implement daily reset mechanism
+            * Add user-friendly error messages
+            * Add remaining attempts count to response headers
+            * Add rate limit status endpoint for users to check remaining attempts
+            * Store rate limit data in Redis with TTL
+          - Workout API Rate Limiting (P1)
+            * Set reasonable limits for workout creation (e.g., 10 per hour)
+            * Set limits for workout retrieval (e.g., 100 per hour)
+            * Implement IP-based rate limiting for public endpoints
+            * Add rate limit status to response headers
+          - Auth Endpoint Rate Limiting (P1)
+            * Limit login attempts (e.g., 5 per minute)
+            * Limit password reset requests (e.g., 3 per hour)
+            * Implement IP-based blocking for suspicious activity
+            * Add CAPTCHA for repeated failed attempts
+          - General API Rate Limiting (P1)
+            * Set default rate limits for all endpoints
+            * Implement different limits for authenticated vs unauthenticated users
+            * Add rate limit information to API documentation
+            * Set up monitoring dashboard for rate limit events
+
   ☐ AI Coach Profiles Feature:
       ☐ Design coach personality system @P1 @6h @id(coach-design)
           Notes: Define coach attributes, personality traits, and experience templates

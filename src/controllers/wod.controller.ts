@@ -4,6 +4,7 @@ import { Collection, ObjectId } from "mongodb";
 import { z } from "zod";
 import { WorkoutOptions } from "../types/workoutOptions.types";
 import { UserProfile } from "../types/userProfile.types";
+import { v4 as uuidv4 } from 'uuid';
 
 // Request validation schema based on testWodGeneration.ts parameters
 const createWodRequestSchema = z.object({
@@ -66,13 +67,19 @@ const wodController = {
                 workoutOptions || {} // Provide empty object if workoutOptions is not provided
             );
 
-            const result = await wodCollection.insertOne(wod);
+            // Add UUID to the WOD
+            const wodWithId = {
+                ...wod,
+                wodId: uuidv4()
+            };
+
+            const result = await wodCollection.insertOne(wodWithId);
 
             if (!result.acknowledged) {
                 throw new Error('Failed to save WOD to database');
             }
 
-            res.status(201).json(wod);
+            res.status(201).json(wodWithId);
 
         } catch (error) {
             console.error("Error in createWod:", error);
@@ -113,9 +120,21 @@ const wodController = {
                 throw new Error('Database connection not initialized');
             }
 
-            const wod = await wodCollection.findOne({
-                _id: new ObjectId(id)
-            });
+            // Try to find by wodId first (UUID)
+            let wod = await wodCollection.findOne({ wodId: id });
+
+            // If not found, try to find by _id (ObjectId)
+            if (!wod) {
+                try {
+                    wod = await wodCollection.findOne({
+                        _id: new ObjectId(id)
+                    });
+                } catch (error) {
+                    // If ObjectId conversion fails, it's an invalid ID
+                    res.status(400).json({ error: 'Invalid WOD ID format' });
+                    return;
+                }
+            }
 
             if (!wod) {
                 res.status(404).json({ error: 'WOD not found' });
@@ -124,10 +143,6 @@ const wodController = {
 
             res.status(200).json(wod);
         } catch (error) {
-            if (error instanceof Error && error.message.includes('ObjectId')) {
-                res.status(400).json({ error: 'Invalid WOD ID format' });
-                return;
-            }
             console.error("Error fetching WOD:", error);
             res.status(500).json({ error: 'Failed to fetch WOD' });
         }

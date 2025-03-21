@@ -13,12 +13,12 @@ dotenv.config();
 const MONGO_URI: string = process.env.MONGO_URI || "mongodb://localhost:27017/workouts_ai_trainer";
 
 // Collection references with proper typing
-let wodCollection: Collection<WodType>;
-let workoutCollection: Collection<WorkoutPlanDB>;
-let userCollection: Collection<User>;
-let userProfileCollection: Collection<UserProfile>;
-let workoutOptionsCollection: Collection<WorkoutOptions>;
-let workoutResultsCollection: Collection<WorkoutResult>;
+let wodCollection: Collection<WodType> = {} as Collection<WodType>;
+let workoutCollection: Collection<WorkoutPlanDB> = {} as Collection<WorkoutPlanDB>;
+let userCollection: Collection<User> = {} as Collection<User>;
+let userProfileCollection: Collection<UserProfile> = {} as Collection<UserProfile>;
+let workoutOptionsCollection: Collection<WorkoutOptions> = {} as Collection<WorkoutOptions>;
+let workoutResultsCollection: Collection<WorkoutResult> = {} as Collection<WorkoutResult>;
 
 // Custom error class for database operations
 class DatabaseError extends Error {
@@ -41,7 +41,7 @@ export async function connectDatabases(app: Application): Promise<void> {
     workoutOptionsCollection = db.collection<WorkoutOptions>("workout_options");
     workoutResultsCollection = db.collection<WorkoutResult>("workout_results");
 
-    // Add collections to app.locals
+    // Add collections to app.locals for global access
     app.locals.wodCollection = wodCollection;
     app.locals.workoutCollection = workoutCollection;
     app.locals.userCollection = userCollection;

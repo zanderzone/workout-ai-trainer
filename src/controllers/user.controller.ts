@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { z } from "zod";
 import { UserProfile } from "../types/userProfile.types";
+import { ValidationError, NotFoundError, DatabaseError, UnauthorizedError } from "../utils/errors";
 
 // Request validation schemas
 const createUserSchema = z.object({
@@ -15,43 +16,90 @@ const createUserSchema = z.object({
 
 const userController = {
     async createUser(req: Request, res: Response) {
-        try {
-            const validation = createUserSchema.safeParse(req.body);
-            if (!validation.success) {
-                return res.status(400).json({
-                    error: "Invalid request data",
-                    details: validation.error.errors
-                });
-            }
+        // Validate request body
+        const validation = createUserSchema.safeParse(req.body);
+        if (!validation.success) {
+            throw new ValidationError("Invalid request data", validation.error.errors);
+        }
 
-            const { userId, profileData } = validation.data;
-            await req.app.locals.userCollection.updateOne(
-                { providerId: userId },
-                { $set: profileData },
-                { upsert: true }
-            );
-            res.json({ message: "User profile stored successfully" });
+        const { userId, profileData } = validation.data;
+
+        // Check if user exists
+        const existingUser = await req.app.locals.userCollection.findOne({ providerId: userId });
+        if (existingUser) {
+            throw new ValidationError("User already exists");
+        }
+
+        try {
+            await req.app.locals.userCollection.insertOne({
+                providerId: userId,
+                ...profileData,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            });
+            res.status(201).json({ message: "User profile created successfully" });
         } catch (error) {
-            console.error("Error storing user profile:", error);
-            res.status(500).json({ error: "Internal server error" });
+            throw new DatabaseError("Failed to create user profile", error);
         }
     },
 
     async getUser(req: Request, res: Response) {
-        try {
-            const userId = req.params.userId;
-            if (!userId) {
-                return res.status(400).json({ error: "User ID is required" });
-            }
+        const userId = req.params.userId;
+        if (!userId) {
+            throw new ValidationError("User ID is required");
+        }
 
-            const userProfile = await req.app.locals.userCollection.findOne({ providerId: userId });
-            if (!userProfile) {
-                return res.status(404).json({ error: "User profile not found" });
-            }
-            res.json(userProfile);
+        const userProfile = await req.app.locals.userCollection.findOne({ providerId: userId });
+        if (!userProfile) {
+            throw new NotFoundError(`User profile not found for ID: ${userId}`);
+        }
+
+        // Check if user is authorized to view this profile
+        if (req.user && req.user.providerId !== userId) {
+            throw new UnauthorizedError("Not authorized to view this profile");
+        }
+
+        res.status(200).json(userProfile);
+    },
+
+    async updateUser(req: Request, res: Response) {
+        const userId = req.params.userId;
+        if (!userId) {
+            throw new ValidationError("User ID is required");
+        }
+
+        // Validate request body
+        const validation = createUserSchema.safeParse(req.body);
+        if (!validation.success) {
+            throw new ValidationError("Invalid request data", validation.error.errors);
+        }
+
+        const { profileData } = validation.data;
+
+        // Check if user exists
+        const existingUser = await req.app.locals.userCollection.findOne({ providerId: userId });
+        if (!existingUser) {
+            throw new NotFoundError(`User profile not found for ID: ${userId}`);
+        }
+
+        // Check if user is authorized to update this profile
+        if (req.user && req.user.providerId !== userId) {
+            throw new UnauthorizedError("Not authorized to update this profile");
+        }
+
+        try {
+            await req.app.locals.userCollection.updateOne(
+                { providerId: userId },
+                {
+                    $set: {
+                        ...profileData,
+                        updatedAt: new Date()
+                    }
+                }
+            );
+            res.status(200).json({ message: "User profile updated successfully" });
         } catch (error) {
-            console.error("Error fetching user profile:", error);
-            res.status(500).json({ error: "Internal server error" });
+            throw new DatabaseError("Failed to update user profile", error);
         }
     }
 };
