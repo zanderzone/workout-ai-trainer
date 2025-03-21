@@ -55,3 +55,6 @@ docker/data/mongodb
 docker/data/postgres
 test-results/*.json
 test-results/*.txt
+
+# Apple Sign In
+config/keys/apple-auth-key.p8
