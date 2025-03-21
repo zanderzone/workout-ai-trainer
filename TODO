@@ -14,7 +14,7 @@ Workout AI Trainer - MVP (v0.1):
           Notes: JWT token generation and validation
     
     Basic UI Setup:
-      ☐ Create React/Next.js project structure @P0 @2h @id(ui-setup) @sprint(1)
+      ☐ Create React/Next.js project structure @P0 @2h @id(ui-setup) @sprint(1) @started(25-03-21 10:18)
         Notes: TypeScript + Tailwind CSS setup
       ☐ Implement registration page @P0 @3h @id(reg-page) @depends(ui-setup) @sprint(1)
           Notes: Form with email/password fields

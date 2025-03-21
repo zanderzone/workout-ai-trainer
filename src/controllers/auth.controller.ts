@@ -61,11 +61,9 @@ export const authController = {
                 // Generate JWT token
                 const token = generateToken(user);
 
-                res.json({
-                    token,
-                    user,
-                    message: 'Successfully authenticated with Google'
-                });
+                // Redirect to frontend with token
+                const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+                res.redirect(`${frontendUrl}/auth/callback?token=${token}`);
             } catch (error: any) {
                 // Handle token exchange errors
                 if (error.message === 'Failed to exchange Google token') {
@@ -132,11 +130,9 @@ export const authController = {
                 // Generate JWT token
                 const token = generateToken(user);
 
-                res.json({
-                    token,
-                    user,
-                    message: 'Successfully authenticated with Apple'
-                });
+                // Redirect to frontend with token
+                const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+                res.redirect(`${frontendUrl}/auth/callback?token=${token}`);
             } catch (error: any) {
                 // Handle token exchange errors
                 if (error.message === 'Failed to exchange Apple token') {
