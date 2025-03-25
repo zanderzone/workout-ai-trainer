@@ -22,6 +22,18 @@ Workout AI Trainer - MVP (v0.1):
           Notes: OAuth buttons for Google and Apple Sign In
       ☐ Add protected route wrapper @P0 @2h @id(protected-routes) @depends(login-page) @sprint(1)
           Notes: Protect routes that require authentication, handle OAuth token validation, and redirect unauthorized users to login
+
+    Prompt Generation Improvements:
+      ☐ Split prompt generation into system and user prompts @P0 @4h @id(prompt-split) @sprint(1)
+          Notes: Improve prompt generation modularity and maintainability
+          Subtasks:
+          - Separate current prompt into:
+            * System prompt: schema, requirements, and guidelines
+            * User prompt: profile, options, and preferences
+          - Update workout service to handle both prompts
+          - Add validation for both prompt types
+          - Update tests for new prompt structure
+          - Add prompt versioning support
     
   Sprint 2 - Core WOD Features (1 week, 25 hours):
     WOD API:
