@@ -60,11 +60,11 @@ export default function Dashboard() {
             <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                 <div className="px-4 py-6 sm:px-0">
                     <div className="bg-white shadow rounded-lg p-6">
-                        <h2 className="text-2xl font-bold mb-4">Welcome, {user.email}!</h2>
-                        <p className="text-gray-600">
+                        <h2 className="text-2xl font-bold mb-4 text-gray-900">Welcome, {user.email}!</h2>
+                        <p className="text-gray-700">
                             Your dashboard is coming soon. Here you'll be able to:
                         </p>
-                        <ul className="mt-4 list-disc list-inside text-gray-600">
+                        <ul className="mt-4 list-disc list-inside text-gray-700">
                             <li>View your workout history</li>
                             <li>Generate new workouts</li>
                             <li>Track your progress</li>

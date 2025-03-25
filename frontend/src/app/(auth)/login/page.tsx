@@ -3,9 +3,17 @@
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import Link from 'next/link';
-import { loginWithGoogle, loginWithApple } from '@/lib/api';
+import { loginWithGoogle, loginWithApple, isAppleSignInEnabled } from '@/lib/api';
+import { useEffect, useState } from 'react';
 
 export default function LoginPage() {
+  const [showAppleSignIn, setShowAppleSignIn] = useState(false);
+
+  useEffect(() => {
+    // Check if Apple Sign In is enabled
+    isAppleSignInEnabled().then(enabled => setShowAppleSignIn(enabled));
+  }, []);
+
   return (
     <div className="w-full max-w-md space-y-8">
       <div className="text-center">
@@ -21,21 +29,23 @@ export default function LoginPage() {
       <div className="mt-8 space-y-4">
         <Button
           variant="outline"
-          className="w-full flex items-center justify-center gap-2"
+          className="w-full flex items-center justify-center gap-2 transition-all duration-200 hover:bg-gray-100 active:bg-gray-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer shadow-sm hover:shadow"
           onClick={loginWithGoogle}
         >
           <Image src="/google.svg" alt="Google" width={18} height={18} />
           Sign in with Google
         </Button>
 
-        <Button
-          variant="outline"
-          className="w-full flex items-center justify-center gap-2"
-          onClick={loginWithApple}
-        >
-          <Image src="/apple.svg" alt="Apple" width={18} height={18} />
-          Sign in with Apple
-        </Button>
+        {showAppleSignIn && (
+          <Button
+            variant="outline"
+            className="w-full flex items-center justify-center gap-2 transition-all duration-200 hover:bg-gray-100 active:bg-gray-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer shadow-sm hover:shadow"
+            onClick={loginWithApple}
+          >
+            <Image src="/apple.svg" alt="Apple" width={18} height={18} />
+            Sign in with Apple
+          </Button>
+        )}
       </div>
     </div>
   );
