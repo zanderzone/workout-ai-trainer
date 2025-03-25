@@ -1,6 +1,8 @@
 import { config } from 'dotenv';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import crypto from 'crypto';
+import { APPLE_CONFIG_MESSAGES } from '../utils/errors';
 
 config();
 
@@ -20,45 +22,30 @@ export interface AppleConfig {
   privateKey: string;
   /** The callback URL for OAuth */
   callbackUrl: string;
-  /** State parameter for CSRF protection */
-  state: string;
   /** OAuth scopes */
   scope: readonly ['name', 'email'];
 }
 
 /**
- * Error messages for Apple configuration
- */
-const APPLE_CONFIG_MESSAGES = {
-  MISSING_ENV: 'Missing required environment variables for Apple Sign In:',
-  INVALID_KEY_PATH: 'Invalid private key path:',
-  KEY_READ_ERROR: 'Failed to read private key file:',
-  INVALID_KEY_FORMAT: 'Invalid private key format. Must be a valid PEM file.'
-} as const;
-
-/**
- * Loads and validates the private key from the specified path
+ * Loads the private key from the specified path
  * @param keyPath - Path to the private key file
  * @returns The private key content
- * @throws Error if the key cannot be loaded or is invalid
+ * @throws Error if the key cannot be loaded
  */
 function loadPrivateKey(keyPath: string): string {
   try {
-    const absolutePath = join(process.cwd(), keyPath);
-    const keyContent = readFileSync(absolutePath, 'utf8');
-
-    if (!keyContent.includes('-----BEGIN PRIVATE KEY-----') ||
-      !keyContent.includes('-----END PRIVATE KEY-----')) {
-      throw new Error(APPLE_CONFIG_MESSAGES.INVALID_KEY_FORMAT);
-    }
-
-    return keyContent;
+    return readFileSync(keyPath, 'utf8');
   } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`${APPLE_CONFIG_MESSAGES.KEY_READ_ERROR} ${error.message}`);
-    }
-    throw error;
+    throw new Error(`${APPLE_CONFIG_MESSAGES.INVALID_KEY_PATH} ${keyPath}`);
   }
+}
+
+/**
+ * Generates a secure random state parameter
+ * @returns A secure random state string
+ */
+export function generateState(): string {
+  return crypto.randomBytes(32).toString('hex');
 }
 
 /**
@@ -107,7 +94,6 @@ export function loadAppleConfig(): AppleConfig {
     keyId: process.env.APPLE_KEY_ID!,
     privateKey: loadPrivateKey(privateKeyPath),
     callbackUrl: process.env.APPLE_CALLBACK_URL!,
-    state: '',
     scope: ['name', 'email']
   };
 

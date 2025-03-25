@@ -1,7 +1,20 @@
+/**
+ * Error messages for Apple configuration
+ */
+export const APPLE_CONFIG_MESSAGES = {
+    MISSING_ENV: 'Missing required environment variables for Apple Sign In:',
+    INVALID_KEY_PATH: 'Invalid private key path:',
+    KEY_READ_ERROR: 'Failed to read private key file:',
+    INVALID_KEY_FORMAT: 'Invalid private key format. Must be a valid PEM file.'
+} as const;
+
+/**
+ * Custom error class for HTTP errors
+ */
 export class HttpError extends Error {
     constructor(
         message: string,
-        public statusCode: number,
+        public readonly statusCode: number,
         public details?: any
     ) {
         super(message);

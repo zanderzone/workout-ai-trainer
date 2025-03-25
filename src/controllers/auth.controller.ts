@@ -1,11 +1,17 @@
 import { Request, Response } from 'express';
 import { generateToken } from '../auth';
-import { appleConfig } from '../config/apple.config';
+import { appleConfig, generateState } from '../config/apple.config';
 import { googleConfig } from '../config/google.config';
 import { BaseUser } from '../types/user.types';
 import { exchangeGoogleToken, exchangeAppleToken, getUserInfo, AppleUserInfo } from '../utils/oauth';
+import { CustomSession } from '../types/session.types';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import debug from 'debug';
+
+const debugAuth = debug('auth:controller');
+
+type RequestWithSession = Request & { session: CustomSession };
 
 export const authController = {
     // Google OAuth methods
@@ -168,8 +174,16 @@ export const authController = {
     },
 
     // Apple Sign In methods
-    appleAuth: (req: Request, res: Response) => {
-        const state = appleConfig.state;
+    appleAuth: (req: RequestWithSession, res: Response) => {
+        // Generate a secure state parameter
+        const state = generateState();
+
+        // Store state in session
+        if (!req.session) {
+            throw new Error('Session not initialized');
+        }
+        req.session.appleOAuthState = state;
+
         const scope = appleConfig.scope.join(' ');
 
         const authUrl = new URL('https://appleid.apple.com/auth/authorize');
@@ -180,76 +194,92 @@ export const authController = {
         authUrl.searchParams.append('state', state);
         authUrl.searchParams.append('scope', scope);
 
+        debugAuth('Apple OAuth Request:', {
+            clientId: appleConfig.servicesId ? 'present' : 'missing',
+            callbackUrl: appleConfig.callbackUrl,
+            scope,
+            state
+        });
+
         res.redirect(authUrl.toString());
     },
 
-    appleCallback: async (req: Request, res: Response) => {
+    appleCallback: async (req: RequestWithSession, res: Response) => {
         try {
-            console.log('Apple callback received:', {
+            debugAuth('Apple callback received:', {
                 body: req.body,
                 headers: req.headers
             });
 
             const { code, state } = req.body;
 
-            // Verify state to prevent CSRF attacks
-            if (state !== appleConfig.state) {
+            // Verify state from session
+            if (!req.session?.appleOAuthState || state !== req.session.appleOAuthState) {
+                debugAuth('Invalid state parameter:', {
+                    received: state,
+                    expected: req.session?.appleOAuthState
+                });
                 res.status(400).json({ message: 'Invalid state parameter' });
                 return;
             }
 
-            // Exchange code for tokens and get user info
-            try {
-                console.log('Exchanging Apple authorization code for tokens...');
-                const { tokens, userInfo } = await exchangeAppleToken(code);
-                console.log('Apple token exchange successful:', {
-                    tokens,
-                    userInfo
-                });
+            // Clear the state from session
+            delete req.session.appleOAuthState;
 
-                // Check if user exists
-                const userCollection = req.app.locals.userCollection;
-                const existingUser = await userCollection.findOne({ providerId: userInfo.sub });
+            // Exchange code for tokens
+            const { tokens, userInfo } = await exchangeAppleToken(code);
+            debugAuth('Apple token exchange successful:', {
+                tokens: tokens ? 'present' : 'missing',
+                userInfo: userInfo ? 'present' : 'missing'
+            });
 
-                // Create or update user
-                const user: BaseUser = {
-                    providerId: userInfo.sub,
-                    email: userInfo.email,
-                    provider: 'apple',
-                    firstName: userInfo.name?.firstName,
-                    lastName: userInfo.name?.lastName,
-                    createdAt: new Date(),
-                    updatedAt: new Date()
-                };
+            // Check if user exists
+            const userCollection = req.app.locals.userCollection;
+            const existingUser = await userCollection.findOne({ providerId: userInfo.sub });
 
-                // Save user to database
-                await userCollection.updateOne(
-                    { providerId: user.providerId },
-                    { $set: user },
-                    { upsert: true }
-                );
+            // Create or update user
+            const user: BaseUser = {
+                providerId: userInfo.sub,
+                email: userInfo.email,
+                provider: 'apple',
+                firstName: userInfo.name?.firstName,
+                lastName: userInfo.name?.lastName,
+                refreshToken: tokens.refresh_token,
+                tokenExpiresAt: new Date(Date.now() + tokens.expires_in * 1000),
+                createdAt: new Date(),
+                updatedAt: new Date()
+            };
 
-                // Generate JWT token
-                const token = generateToken(user);
+            // Save user to database
+            await userCollection.updateOne(
+                { providerId: user.providerId },
+                { $set: user },
+                { upsert: true }
+            );
 
-                // Redirect based on whether user is new
-                const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
-                if (!existingUser) {
-                    res.redirect(`${frontendUrl}/register?token=${token}`);
-                } else {
-                    res.redirect(`${frontendUrl}/auth/callback?token=${token}`);
-                }
-            } catch (error: any) {
-                // Handle token exchange errors
-                if (error.message === 'Failed to exchange Apple token') {
-                    res.status(401).json({ message: 'Invalid authorization code' });
-                    return;
-                }
-                throw error;
-            }
+            // Generate JWT token
+            const token = generateToken(user);
+
+            // Set JWT cookie
+            res.cookie('jwt', token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+            });
+
+            // Redirect based on whether user is new
+            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+            const redirectUrl = !existingUser
+                ? `${frontendUrl}/register?token=${token}`
+                : `${frontendUrl}/auth/callback?token=${token}`;
+
+            debugAuth('Authentication successful, redirecting to:', redirectUrl);
+            res.redirect(redirectUrl);
         } catch (error) {
-            console.error('Apple Sign In error:', error);
-            res.status(500).json({ message: 'Authentication failed' });
+            debugAuth('Apple Sign In error:', error);
+            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+            res.redirect(`${frontendUrl}/login?error=auth_failed`);
         }
     },
 
