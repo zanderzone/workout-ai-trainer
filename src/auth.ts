@@ -8,6 +8,16 @@ import dotenv from "dotenv";
 import { Collection } from "mongodb";
 import { appleConfig } from "./config/apple.config";
 
+// Add missing type for Apple Strategy options
+interface AppleStrategyOptions {
+    clientID: string;
+    teamID: string;
+    keyID: string;
+    privateKey: string;
+    callbackURL: string;
+    passReqToCallback: true;  // Must be true since we're using the request
+}
+
 dotenv.config();
 
 // User serialization
@@ -19,7 +29,7 @@ passport.use(new GoogleStrategy(
     {
         clientID: process.env.GOOGLE_CLIENT_ID!,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-        callbackURL: "/auth/google/callback",
+        callbackURL: "/api/auth/google/callback",
     },
     async (accessToken, refreshToken, profile, done) => {
         try {
@@ -61,10 +71,10 @@ passport.use(new AppleStrategy(
         clientID: appleConfig.clientId!,
         teamID: appleConfig.teamId!,
         keyID: appleConfig.keyId!,
-        privateKeyLocation: appleConfig.privateKeyLocation!,
+        privateKey: appleConfig.privateKey!,
         callbackURL: appleConfig.callbackUrl!,
         passReqToCallback: true
-    },
+    } as AppleStrategyOptions,
     async (req, accessToken, refreshToken, idToken, profile, done) => {
         try {
             const userCollection: Collection<User> = (global as any).userCollection;

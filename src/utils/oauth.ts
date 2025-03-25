@@ -11,56 +11,123 @@ const debugGoogle = debug('oauth:google');
 const debugApple = debug('oauth:apple');
 const debugToken = debug('oauth:token');
 
+/**
+ * Custom error class for OAuth-related errors
+ */
+export class OAuthError extends Error {
+    constructor(
+        message: string,
+        public readonly code: string,
+        public readonly provider: 'google' | 'apple'
+    ) {
+        super(message);
+        this.name = 'OAuthError';
+    }
+}
+
+/**
+ * Response from Google's token endpoint
+ */
 export interface GoogleTokenResponse {
+    /** OAuth access token */
     access_token: string;
+    /** OpenID Connect ID token */
     id_token: string;
+    /** OAuth refresh token (optional) */
     refresh_token?: string;
+    /** Token expiration time in seconds */
     expires_in: number;
+    /** Token type (usually "Bearer") */
     token_type: string;
 }
 
+/**
+ * User information from Google's userinfo endpoint
+ */
 export interface GoogleUserInfo {
+    /** Google user ID */
     id: string;
+    /** User's email address */
     email: string;
+    /** Whether the email is verified */
     verified_email: boolean;
+    /** User's full name */
     name?: string;
+    /** User's given name */
     given_name?: string;
+    /** User's family name */
     family_name?: string;
+    /** URL to user's profile picture */
     picture?: string;
 }
 
+/**
+ * Response from Apple's token endpoint
+ */
 export interface AppleTokenResponse {
+    /** OAuth access token */
     access_token: string;
+    /** Token type (usually "Bearer") */
     token_type: string;
+    /** Token expiration time in seconds */
     expires_in: number;
+    /** OAuth refresh token */
     refresh_token: string;
+    /** OpenID Connect ID token */
     id_token: string;
 }
 
+/**
+ * User information decoded from Apple's ID token
+ */
 export interface AppleUserInfo {
-    sub: string; // The unique identifier for the user
+    /** Unique identifier for the user */
+    sub: string;
+    /** User's email address */
     email: string;
+    /** Whether the email is verified */
     email_verified: boolean;
+    /** User's name information */
     name?: {
         firstName: string;
         lastName: string;
     };
 }
 
+/**
+ * Fetches user information from Google's userinfo endpoint
+ * @param accessToken - Valid Google access token
+ * @returns User information from Google
+ * @throws OAuthError if the request fails
+ */
 export async function getUserInfo(accessToken: string): Promise<GoogleUserInfo> {
-    const response = await axios.get<GoogleUserInfo>(
-        'https://www.googleapis.com/oauth2/v2/userinfo',
-        {
-            headers: { Authorization: `Bearer ${accessToken}` }
-        }
-    );
-    return response.data;
+    try {
+        const response = await axios.get<GoogleUserInfo>(
+            'https://www.googleapis.com/oauth2/v2/userinfo',
+            {
+                headers: { Authorization: `Bearer ${accessToken}` }
+            }
+        );
+        return response.data;
+    } catch (error) {
+        throw new OAuthError(
+            'Failed to fetch user info',
+            'user_info_failed',
+            'google'
+        );
+    }
 }
 
+/**
+ * Exchanges an authorization code for Google tokens and user information
+ * @param code - Authorization code from Google
+ * @returns Object containing tokens and user information
+ * @throws OAuthError if the exchange fails
+ */
 export async function exchangeGoogleToken(code: string): Promise<{ tokens: GoogleTokenResponse; userInfo: GoogleUserInfo }> {
     try {
-        console.log('Starting Google token exchange...');
-        console.log('Request parameters:', {
+        debugGoogle('Starting Google token exchange...');
+        debugGoogle('Request parameters:', {
             code: code ? 'present' : 'missing',
             clientId: googleConfig.clientId ? 'present' : 'missing',
             callbackUrl: googleConfig.callbackUrl,
@@ -75,7 +142,6 @@ export async function exchangeGoogleToken(code: string): Promise<{ tokens: Googl
             };
         }
 
-        // Exchange authorization code for tokens
         const tokenResponse = await axios.post<GoogleTokenResponse>(
             'https://oauth2.googleapis.com/token',
             {
@@ -87,45 +153,38 @@ export async function exchangeGoogleToken(code: string): Promise<{ tokens: Googl
             }
         );
 
-        console.log('Token exchange response received:', {
+        debugGoogle('Token exchange successful:', {
             accessToken: tokenResponse.data.access_token ? 'present' : 'missing',
             idToken: tokenResponse.data.id_token ? 'present' : 'missing',
-            refreshToken: tokenResponse.data.refresh_token ? 'present' : 'missing',
-            expiresIn: tokenResponse.data.expires_in,
-            tokenType: tokenResponse.data.token_type
+            refreshToken: tokenResponse.data.refresh_token ? 'present' : 'missing'
         });
 
-        // Get user info using the access token
-        console.log('Fetching Google user info...');
-        const userInfoResponse = await axios.get<GoogleUserInfo>(
-            'https://www.googleapis.com/oauth2/v2/userinfo',
-            {
-                headers: { Authorization: `Bearer ${tokenResponse.data.access_token}` }
-            }
-        );
-
-        console.log('User info received:', {
-            id: userInfoResponse.data.id,
-            email: userInfoResponse.data.email,
-            name: userInfoResponse.data.name,
-            givenName: userInfoResponse.data.given_name,
-            familyName: userInfoResponse.data.family_name
-        });
+        const userInfo = await getUserInfo(tokenResponse.data.access_token);
 
         return {
             tokens: tokenResponse.data,
-            userInfo: userInfoResponse.data
+            userInfo
         };
     } catch (error: any) {
-        console.error('Error in Google token exchange:', {
+        debugGoogle('Error in Google token exchange:', {
             message: error.message,
             response: error.response?.data,
             status: error.response?.status
         });
-        throw new Error('Failed to exchange Google token');
+        throw new OAuthError(
+            'Failed to exchange Google token',
+            error.response?.data?.error || 'token_exchange_failed',
+            'google'
+        );
     }
 }
 
+/**
+ * Refreshes a Google OAuth access token
+ * @param refreshToken - Valid refresh token
+ * @returns New token response
+ * @throws OAuthError if the refresh fails
+ */
 export async function refreshGoogleToken(refreshToken: string): Promise<GoogleTokenResponse> {
     try {
         debugToken('Refreshing Google access token');
@@ -141,11 +200,25 @@ export async function refreshGoogleToken(refreshToken: string): Promise<GoogleTo
         debugToken('Successfully refreshed Google token');
         return response.data;
     } catch (error: any) {
-        debugToken('Error refreshing Google token: %O', error.response?.data || error.message);
-        throw new Error('Failed to refresh Google token');
+        debugToken('Error refreshing Google token:', {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status
+        });
+        throw new OAuthError(
+            'Failed to refresh Google token',
+            error.response?.data?.error || 'token_refresh_failed',
+            'google'
+        );
     }
 }
 
+/**
+ * Exchanges an authorization code for Apple tokens and user information
+ * @param code - Authorization code from Apple
+ * @returns Object containing tokens and user information
+ * @throws OAuthError if the exchange fails
+ */
 export async function exchangeAppleToken(code: string): Promise<{ tokens: AppleTokenResponse; userInfo: AppleUserInfo }> {
     try {
         debugApple('Starting Apple token exchange...');
@@ -191,7 +264,7 @@ export async function exchangeAppleToken(code: string): Promise<{ tokens: AppleT
             }
         );
 
-        debugApple('Token exchange successful. Response:', {
+        debugApple('Token exchange successful:', {
             accessToken: response.data.access_token ? 'present' : 'missing',
             tokenType: response.data.token_type,
             expiresIn: response.data.expires_in,
@@ -217,19 +290,25 @@ export async function exchangeAppleToken(code: string): Promise<{ tokens: AppleT
             userInfo: decodedToken
         };
     } catch (error: any) {
-        debugApple('Error in Apple token exchange:');
-        debugApple('Error message:', error.message);
-        if (error.response) {
-            debugApple('Response status:', error.response.status);
-            debugApple('Response data:', error.response.data);
-            debugApple('Response headers:', error.response.headers);
-        } else if (error.request) {
-            debugApple('No response received. Request:', error.request);
-        }
-        throw new Error('Failed to exchange Apple token: ' + (error.response?.data?.error || error.message));
+        debugApple('Error in Apple token exchange:', {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status
+        });
+        throw new OAuthError(
+            'Failed to exchange Apple token',
+            error.response?.data?.error || 'token_exchange_failed',
+            'apple'
+        );
     }
 }
 
+/**
+ * Refreshes an Apple OAuth access token
+ * @param refreshToken - Valid refresh token
+ * @returns New token response
+ * @throws OAuthError if the refresh fails
+ */
 export async function refreshAppleToken(refreshToken: string): Promise<AppleTokenResponse> {
     try {
         debugToken('Refreshing Apple access token');
@@ -239,7 +318,7 @@ export async function refreshAppleToken(refreshToken: string): Promise<AppleToke
             'https://appleid.apple.com/auth/token',
             {
                 refresh_token: refreshToken,
-                client_id: appleConfig.clientId,
+                client_id: appleConfig.servicesId, // Use Services ID for refresh
                 client_secret: clientSecret,
                 grant_type: 'refresh_token'
             }
@@ -247,16 +326,28 @@ export async function refreshAppleToken(refreshToken: string): Promise<AppleToke
         debugToken('Successfully refreshed Apple token');
         return response.data;
     } catch (error: any) {
-        debugToken('Error refreshing Apple token: %O', error.response?.data || error.message);
-        throw new Error('Failed to refresh Apple token');
+        debugToken('Error refreshing Apple token:', {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status
+        });
+        throw new OAuthError(
+            'Failed to refresh Apple token',
+            error.response?.data?.error || 'token_refresh_failed',
+            'apple'
+        );
     }
 }
 
-// Update generateAppleClientSecret to use the config
+/**
+ * Generates a client secret JWT for Apple Sign In
+ * @returns JWT string to use as client_secret
+ * @throws Error if JWT generation fails
+ */
 async function generateAppleClientSecret(): Promise<string> {
     try {
-        console.log('Generating Apple client secret...');
-        console.log('Apple config:', {
+        debugApple('Generating client secret...');
+        debugApple('Apple config:', {
             clientId: appleConfig.clientId,
             servicesId: appleConfig.servicesId,
             teamId: appleConfig.teamId,
@@ -269,7 +360,7 @@ async function generateAppleClientSecret(): Promise<string> {
             expiresIn: '1h',
             audience: 'https://appleid.apple.com',
             issuer: appleConfig.teamId,
-            subject: appleConfig.servicesId, // Use Services ID as the subject
+            subject: appleConfig.servicesId,
             header: {
                 alg: 'ES256',
                 kid: appleConfig.keyId,
@@ -279,11 +370,11 @@ async function generateAppleClientSecret(): Promise<string> {
 
         // Log the decoded token for debugging
         const decoded = jwt.decode(clientSecret, { complete: true });
-        console.log('Decoded client secret:', JSON.stringify(decoded, null, 2));
+        debugApple('Decoded client secret:', JSON.stringify(decoded, null, 2));
 
         return clientSecret;
     } catch (error) {
-        debugApple('Error generating Apple client secret: %O', error);
+        debugApple('Error generating Apple client secret:', error);
         throw new Error('Failed to generate Apple client secret');
     }
 }
@@ -315,7 +406,12 @@ async function generateAppleClientSecret(): Promise<string> {
 //     }
 // }
 
-// Utility function to check if a token is expiring soon
+/**
+ * Checks if a token is expiring soon
+ * @param expiresIn - Token expiration time in seconds
+ * @param thresholdSeconds - Time threshold in seconds (default: 5 minutes)
+ * @returns True if the token is expiring within the threshold
+ */
 export function isTokenExpiringSoon(expiresIn: number, thresholdSeconds = 300): boolean {
     return expiresIn <= thresholdSeconds;
 } 
