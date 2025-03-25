@@ -22,15 +22,14 @@ const userProfile: UserProfile = {
 };
 
 const workoutOptions: WorkoutOptions = {
-    totalAvailableTime: "45 minutes",
-    userDescription: "I'd like an intense workout that focuses on strength and conditioning. Can you structure this for a group of experienced and intermediate level Crossfit athetes?",
-    workoutDuration: "8 minutes <= duration <= 10 minutes",
+    totalAvailableTime: "60 minutes",
+    userDescription: "For today's WOD, I'd like to focus on a workout that helps me improve my ability to complete a WOD with intensity and strength. Please make it fun and challenging",
+    workoutDuration: "8 minutes <= duration <= 12 minutes",
     scaling: "shorter duration, shorter distances, lighter weight or bodyweight exercises",
     includeScalingOptions: true,
     includeWarmups: true,
     includeAlternateMovements: true,
     includeCooldown: true,
-    includeRestDays: true,
     includeBenchmarkWorkouts: true,
     availableEquipment: [
         "45 lb olympic barbell", "35 lb olympic barbell", "15-45 lb Dumbbell pairs", "Bumper Plates weight > 300 lbs",
@@ -43,7 +42,7 @@ const workoutOptions: WorkoutOptions = {
     indoorAndOutdoorWorkout: false,
     includeExcercises: [],
     excludeExcercises: [],
-    wodRequestTime: "7:30 PM"
+    wodRequestTime: "5:42 PM"
 };
 
 // Instantiate the OpenAIWorkoutAdapter
@@ -52,19 +51,19 @@ const workoutAdapter = new OpenAIWorkoutAdapter();
 async function testGenerateWod() {
     try {
         const result = await workoutAdapter.generateWod(userId, userProfile, workoutOptions);
-        
+
         // Transform the result to match the WOD interface
         const wodFormatted = {
             description: result.wod.description,
             wod: result.wod.wod
         };
-        
+
         // Format the WOD JSON into a markdown string
         const formattedWod = formatWodToMarkdown(wodFormatted);
-        
+
         console.log("Generated WOD:");
         console.log(formattedWod);
-        
+
         // Uncomment this if you still want to see the raw JSON output
         // console.log("Raw WOD JSON:", JSON.stringify(result, null, 2));
     } catch (error) {

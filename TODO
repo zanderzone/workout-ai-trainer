@@ -20,8 +20,14 @@ Workout AI Trainer - MVP (v0.1):
           Notes: OAuth integration with Google and Apple Sign In
       ✔ Implement login page @P0 @3h @id(login-page) @depends(ui-setup) @sprint(1) @started(25-03-24 17:20) @done(25-03-24 18:30)
           Notes: OAuth buttons for Google and Apple Sign In
-      ☐ Add protected route wrapper @P0 @2h @id(protected-routes) @depends(login-page) @sprint(1)
+      ✔ Add protected route wrapper @P0 @2h @id(protected-routes) @depends(login-page) @sprint(1) @started(25-03-25 13:30) @done(25-03-25 14:30)
           Notes: Protect routes that require authentication, handle OAuth token validation, and redirect unauthorized users to login
+          Subtasks:
+          - Created useAuth hook for managing authentication state
+          - Enhanced ProtectedRoute component with loading states and error handling
+          - Added comprehensive test coverage for both hook and component
+          - Added support for custom redirect paths and fallback components
+          - Added support for inverse protection (redirecting authenticated users away from auth pages)
 
     Prompt Generation Improvements:
       ☐ Split prompt generation into system and user prompts @P0 @4h @id(prompt-split) @sprint(1)
