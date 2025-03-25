@@ -2,11 +2,11 @@
   "name": "workout-ai-trainer",
   "version": "1.0.0",
   "description": "POC to build an AI personal trainer to generate CrossFit-style workouts",
-  "main": "dist/app.js",
+  "main": "dist/server.js",
   "scripts": {
-    "dev": "nodemon",
+    "dev": "nodemon --watch src -e ts,js --exec ts-node ./src/server.ts",
     "build": "tsc",
-    "start": "node dist/app.js",
+    "start": "node dist/server.js",
     "test": "vitest run",
     "test:unit": "vitest tests/unit --reporter=verbose",
     "test:integration": "vitest tests/integration --silent=false --reporter=verbose",
@@ -56,6 +56,7 @@
     "zod-to-json-schema": "^3.24.1"
   },
   "dependencies": {
+    "@types/cookie-parser": "^1.4.8",
     "@types/cors": "^2.8.17",
     "@types/debug": "^4.1.12",
     "@types/express-session": "^1.18.1",
@@ -63,6 +64,7 @@
     "@types/passport-apple": "^2.0.3",
     "@types/passport-google-oauth20": "^2.0.16",
     "@types/uuid": "^10.0.0",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "debug": "^4.4.0",
     "dotenv": "^16.4.7",
