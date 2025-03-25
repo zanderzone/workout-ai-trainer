@@ -63,7 +63,7 @@ async function testWodEndpoint() {
 
     // Test 1: Create WOD without token (should fail)
     console.log('Test 1: Create WOD without token');
-    const result1 = await makeWodRequest('/wod', undefined, 'POST', {
+    const result1 = await makeWodRequest('/api/wod', undefined, 'POST', {
         userId: 'test123',
         workoutOptions: {
             totalAvailableTime: '60 minutes',
@@ -91,7 +91,7 @@ async function testWodEndpoint() {
             includeCooldown: true
         }
     };
-    const result2 = await makeWodRequest('/wod', validToken, 'POST', validWodData);
+    const result2 = await makeWodRequest('/api/wod', validToken, 'POST', validWodData);
     console.log(`Status: ${result2.status}, Message: ${result2.message}`);
     if (!result2.success) process.exit(1);
     if (result2.data) {
@@ -100,14 +100,14 @@ async function testWodEndpoint() {
 
     // Test 3: Get WOD with invalid ID (should fail)
     console.log('\nTest 3: Get WOD with invalid ID');
-    const result3 = await makeWodRequest('/wod/invalid-id', validToken);
+    const result3 = await makeWodRequest('/api/wod/invalid-id', validToken);
     console.log(`Status: ${result3.status}, Message: ${result3.message}`);
     if (result3.success) process.exit(1);
 
     // Test 4: Get WOD with valid ID (should succeed)
     if (result2.data?.wodId) {
         console.log('\nTest 4: Get WOD with valid ID');
-        const result4 = await makeWodRequest(`/wod/${result2.data.wodId}`, validToken);
+        const result4 = await makeWodRequest(`/api/wod/${result2.data.wodId}`, validToken);
         console.log(`Status: ${result4.status}, Message: ${result4.message}`);
         if (!result4.success) process.exit(1);
         if (result4.data) {
@@ -123,7 +123,7 @@ async function testWodEndpoint() {
             totalAvailableTime: 'invalid time'
         }
     };
-    const result5 = await makeWodRequest('/wod', validToken, 'POST', invalidWodData);
+    const result5 = await makeWodRequest('/api/wod', validToken, 'POST', invalidWodData);
     console.log(`Status: ${result5.status}, Message: ${result5.message}`);
     if (result5.success) process.exit(1);
 

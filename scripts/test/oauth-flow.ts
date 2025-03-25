@@ -57,7 +57,7 @@ async function testOAuthFlow(provider: 'google' | 'apple') {
         console.log(`\nTesting ${provider} OAuth flow...`);
 
         // 1. Test initial redirect
-        const authResponse = await axios.get(`${API_URL}/auth/${provider}`, {
+        const authResponse = await axios.get(`${API_URL}/api/auth/${provider}`, {
             maxRedirects: 0,
             validateStatus: (status) => status === 302
         });
@@ -84,7 +84,7 @@ async function testOAuthFlow(provider: 'google' | 'apple') {
         try {
             const invalidCallbackConfig = {
                 method: provider === 'google' ? 'get' : 'post',
-                url: `${API_URL}/auth/${provider}/callback`,
+                url: `${API_URL}/api/auth/${provider}/callback`,
                 ...(provider === 'google'
                     ? { params: { code: 'invalid_code', state: 'invalid_state' } }
                     : { data: { code: 'invalid_code', state: 'invalid_state' } })
@@ -99,7 +99,7 @@ async function testOAuthFlow(provider: 'google' | 'apple') {
         try {
             const invalidCodeConfig = {
                 method: provider === 'google' ? 'get' : 'post',
-                url: `${API_URL}/auth/${provider}/callback`,
+                url: `${API_URL}/api/auth/${provider}/callback`,
                 ...(provider === 'google'
                     ? { params: { code: 'invalid_code', state } }
                     : { data: { code: 'invalid_code', state } })

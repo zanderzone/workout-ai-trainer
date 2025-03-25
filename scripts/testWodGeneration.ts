@@ -1,7 +1,12 @@
 import { OpenAIWorkoutAdapter } from "../src/services/wod.service";
 import { WorkoutOptions } from "../src/types/workoutOptions.types";
 import { UserProfile } from "../src/types/userProfile.types";
+import { formatWodToMarkdown } from "../src/utils/markdown";
 import { v4 as uuidv4 } from 'uuid';
+import dotenv from 'dotenv';
+dotenv.config();
+
+console.log('OPENAI_API_KEY is', process.env.OPENAI_API_KEY ? 'set' : 'not set');
 
 // Mock user profile and workout options
 const userId = uuidv4();
@@ -47,7 +52,21 @@ const workoutAdapter = new OpenAIWorkoutAdapter();
 async function testGenerateWod() {
     try {
         const result = await workoutAdapter.generateWod(userId, userProfile, workoutOptions);
-        console.log("Generated WOD:", JSON.stringify(result, null, 2));
+        
+        // Transform the result to match the WOD interface
+        const wodFormatted = {
+            description: result.wod.description,
+            wod: result.wod.wod
+        };
+        
+        // Format the WOD JSON into a markdown string
+        const formattedWod = formatWodToMarkdown(wodFormatted);
+        
+        console.log("Generated WOD:");
+        console.log(formattedWod);
+        
+        // Uncomment this if you still want to see the raw JSON output
+        // console.log("Raw WOD JSON:", JSON.stringify(result, null, 2));
     } catch (error) {
         console.error("Error generating WOD:", error);
     }
