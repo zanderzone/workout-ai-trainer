@@ -1,39 +1,51 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { checkAuthStatus } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  redirectPath?: string;
+  fallback?: React.ReactNode;
+  requireAuth?: boolean;
 }
 
-export default function ProtectedRoute({ children }: ProtectedRouteProps) {
+export default function ProtectedRoute({
+  children,
+  redirectPath = "/login",
+  fallback,
+  requireAuth = true,
+}: ProtectedRouteProps) {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
+  const { isAuthenticated, isLoading, error } = useAuth();
 
   useEffect(() => {
-    async function validateAuth() {
-      try {
-        const { isAuthenticated } = await checkAuthStatus();
-        if (!isAuthenticated) {
-          router.push("/login");
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        router.push("/login");
-      } finally {
-        setIsLoading(false);
+    if (!isLoading) {
+      if (requireAuth && !isAuthenticated) {
+        router.push(redirectPath);
+        return;
+      }
+
+      if (!requireAuth && isAuthenticated) {
+        router.push("/dashboard");
+        return;
       }
     }
-
-    validateAuth();
-  }, [router]);
+  }, [isLoading, isAuthenticated, router, redirectPath, requireAuth]);
 
   if (isLoading) {
+    return fallback || (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-gray-600 animate-pulse">Loading...</div>
+      </div>
+    );
+  }
+
+  if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-600">Loading...</div>
+        <div className="text-red-600">{error}</div>
       </div>
     );
   }
