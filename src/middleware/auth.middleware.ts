@@ -29,16 +29,8 @@ const isValidProvider = (provider: string): provider is 'google' | 'apple' => {
 };
 
 export const authenticateJWT = asyncHandler(async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    // Skip authentication if disabled
-    if (!process.env.AUTH_ENABLED) {
-        logAccess(req);
-        next();
-        return;
-    }
-
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-        logAccess(req);
         throw new HttpError('No token provided', 401);
     }
 
@@ -51,26 +43,18 @@ export const authenticateJWT = asyncHandler(async (req: Request, res: Response, 
             throw new HttpError('Invalid provider type', 401);
         }
 
-        // Validate refresh token
-        if (!decoded.refreshToken) {
-            throw new HttpError('Invalid token: missing refresh token', 401);
-        }
-
         // Create a BaseUser object from the JWT payload
         const user: BaseUser = {
             providerId: decoded.providerId,
             email: decoded.email,
             provider: decoded.provider,
             refreshToken: decoded.refreshToken,
-            tokenExpiresAt: decoded.tokenExpiresAt ? new Date(decoded.tokenExpiresAt) : undefined,
-            createdAt: new Date(), // These will be updated when we fetch the full user
+            createdAt: new Date(),
             updatedAt: new Date()
         };
-        req.user = user as any; // Type assertion needed due to Passport's type definition
-        logAccess(req, user);
+        req.user = user;
         next();
     } catch (error) {
-        logAccess(req);
         if (error instanceof HttpError) {
             throw error;
         }

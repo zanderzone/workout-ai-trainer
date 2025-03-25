@@ -12,13 +12,16 @@ dotenv.config();
 
 const MONGO_URI: string = process.env.MONGO_URI || "mongodb://localhost:27017/workouts_ai_trainer";
 
+// MongoDB client instance
+let mongoClient: MongoClient;
+
 // Collection references with proper typing
-let wodCollection: Collection<WodType> = {} as Collection<WodType>;
-let workoutCollection: Collection<WorkoutPlanDB> = {} as Collection<WorkoutPlanDB>;
-let userCollection: Collection<User> = {} as Collection<User>;
-let userProfileCollection: Collection<UserProfile> = {} as Collection<UserProfile>;
-let workoutOptionsCollection: Collection<WorkoutOptions> = {} as Collection<WorkoutOptions>;
-let workoutResultsCollection: Collection<WorkoutResult> = {} as Collection<WorkoutResult>;
+let wodCollection: Collection<WodType>;
+let workoutCollection: Collection<WorkoutPlanDB>;
+let userCollection: Collection<User>;
+let userProfileCollection: Collection<UserProfile>;
+let workoutOptionsCollection: Collection<WorkoutOptions>;
+let workoutResultsCollection: Collection<WorkoutResult>;
 
 // Custom error class for database operations
 class DatabaseError extends Error {
@@ -30,8 +33,17 @@ class DatabaseError extends Error {
 
 export async function connectDatabases(app: Application): Promise<void> {
   try {
-    const client = await MongoClient.connect(MONGO_URI);
-    const db = client.db();
+    // Create MongoDB client with connection pooling
+    mongoClient = new MongoClient(MONGO_URI, {
+      maxPoolSize: 50,
+      minPoolSize: 10,
+      socketTimeoutMS: 30000,
+      connectTimeoutMS: 30000,
+    });
+
+    // Connect to MongoDB
+    await mongoClient.connect();
+    const db = mongoClient.db();
 
     // Initialize collections with proper typing
     wodCollection = db.collection<WodType>("wods");
@@ -60,6 +72,8 @@ export async function connectDatabases(app: Application): Promise<void> {
     // Create indexes with error handling
     try {
       await Promise.all([
+        userCollection.createIndex({ providerId: 1 }, { unique: true }),
+        userCollection.createIndex({ email: 1 }),
         userProfileCollection.createIndex({ userId: 1 }, { unique: true }),
         workoutOptionsCollection.createIndex({ userId: 1 }, { unique: true }),
         workoutResultsCollection.createIndex({ user_id: 1, date: -1 })
@@ -69,10 +83,26 @@ export async function connectDatabases(app: Application): Promise<void> {
       // Don't throw here, as indexes can be created later
     }
 
-    console.log("Connected to MongoDB");
+    console.log("Connected to MongoDB successfully");
   } catch (error) {
     console.error("MongoDB connection error:", error);
     throw new DatabaseError("Failed to connect to MongoDB", error);
+  }
+}
+
+// Add a function to get the MongoDB client
+export function getMongoClient(): MongoClient {
+  if (!mongoClient) {
+    throw new DatabaseError("MongoDB client not initialized");
+  }
+  return mongoClient;
+}
+
+// Add a function to close the MongoDB connection
+export async function closeDatabaseConnection(): Promise<void> {
+  if (mongoClient) {
+    await mongoClient.close();
+    console.log("MongoDB connection closed");
   }
 }
 

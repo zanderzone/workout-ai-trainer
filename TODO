@@ -14,14 +14,14 @@ Workout AI Trainer - MVP (v0.1):
           Notes: JWT token generation and validation
     
     Basic UI Setup:
-      ☐ Create React/Next.js project structure @P0 @2h @id(ui-setup) @sprint(1) @started(25-03-21 10:18)
+      ✔ Create React/Next.js project structure @P0 @2h @id(ui-setup) @sprint(1) @started(25-03-21 11:00) @done(25-03-21 14:40) @lasted(3h40m18s)
         Notes: TypeScript + Tailwind CSS setup
-      ☐ Implement registration page @P0 @3h @id(reg-page) @depends(ui-setup) @sprint(1)
-          Notes: Form with email/password fields
-      ☐ Implement login page @P0 @3h @id(login-page) @depends(ui-setup) @sprint(1)
-          Notes: Form with email/password fields
+      ✔ Implement registration page @P0 @3h @id(reg-page) @depends(ui-setup) @sprint(1) @started(25-03-21 14:47) @done(25-03-24 18:30)
+          Notes: OAuth integration with Google and Apple Sign In
+      ✔ Implement login page @P0 @3h @id(login-page) @depends(ui-setup) @sprint(1) @started(25-03-24 17:20) @done(25-03-24 18:30)
+          Notes: OAuth buttons for Google and Apple Sign In
       ☐ Add protected route wrapper @P0 @2h @id(protected-routes) @depends(login-page) @sprint(1)
-          Notes: Redirect unauthorized users to login
+          Notes: Protect routes that require authentication, handle OAuth token validation, and redirect unauthorized users to login
     
   Sprint 2 - Core WOD Features (1 week, 25 hours):
     WOD API:

@@ -12,7 +12,7 @@ async function testAuthErrors() {
         // Test 1: Register with invalid email
         console.log('1. Testing registration with invalid email...');
         try {
-            await axios.post(`${API_URL}/auth/register`, {
+            await axios.post(`${API_URL}/api/auth/register`, {
                 email: 'invalid-email',
                 password: 'TestPassword123!',
                 firstName: 'Test',
@@ -28,7 +28,7 @@ async function testAuthErrors() {
         // Test 2: Login with wrong password
         console.log('2. Testing login with wrong password...');
         try {
-            await axios.post(`${API_URL}/auth/login`, {
+            await axios.post(`${API_URL}/api/auth/login`, {
                 email: 'test@example.com',
                 password: 'WrongPassword123!'
             });
@@ -42,7 +42,7 @@ async function testAuthErrors() {
         // Test 3: Access protected route without token
         console.log('3. Testing protected route access without token...');
         try {
-            await axios.get(`${API_URL}/wod/history`);
+            await axios.get(`${API_URL}/api/wod/history`);
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 console.log('Expected error:', error.response?.data);
@@ -53,7 +53,7 @@ async function testAuthErrors() {
         // Test 4: Access protected route with invalid token
         console.log('4. Testing protected route access with invalid token...');
         try {
-            await axios.get(`${API_URL}/wod/history`, {
+            await axios.get(`${API_URL}/api/wod/history`, {
                 headers: {
                     Authorization: 'Bearer invalid-token'
                 }

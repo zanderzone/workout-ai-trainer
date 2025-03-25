@@ -39,7 +39,7 @@ const workoutOptions: WorkoutOptions = {
 
 async function testWodRequest() {
     try {
-        const response = await axios.post(`${API_URL}/wod`, {
+        const response = await axios.post(`${API_URL}/api/wod`, {
             userId: userProfile.providerId,
             userProfile,
             workoutOptions

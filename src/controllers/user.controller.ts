@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { z } from "zod";
 import { UserProfile } from "../types/userProfile.types";
 import { ValidationError, NotFoundError, DatabaseError, UnauthorizedError } from "../utils/errors";
+import jwt from 'jsonwebtoken';
 
 // Request validation schemas
 const createUserSchema = z.object({
@@ -12,6 +13,17 @@ const createUserSchema = z.object({
         fitnessLevel: z.enum(["beginner", "intermediate", "advanced"]).optional(),
         injuriesOrLimitations: z.array(z.string()).optional()
     })
+});
+
+const profileDataSchema = z.object({
+    ageRange: z.enum(["18-24", "25-34", "35-44", "45-54", "55+"]),
+    sex: z.enum(["male", "female", "other"]),
+    fitnessLevel: z.enum(["beginner", "intermediate", "advanced"]),
+    goals: z.array(z.string()),
+    injuriesOrLimitations: z.array(z.string()),
+    workoutDuration: z.string(),
+    equipment: z.array(z.string()),
+    gymLocation: z.string()
 });
 
 const userController = {
@@ -63,43 +75,59 @@ const userController = {
     },
 
     async updateUser(req: Request, res: Response) {
-        const userId = req.params.userId;
-        if (!userId) {
-            throw new ValidationError("User ID is required");
-        }
-
-        // Validate request body
-        const validation = createUserSchema.safeParse(req.body);
-        if (!validation.success) {
-            throw new ValidationError("Invalid request data", validation.error.errors);
-        }
-
-        const { profileData } = validation.data;
-
-        // Check if user exists
-        const existingUser = await req.app.locals.userCollection.findOne({ providerId: userId });
-        if (!existingUser) {
-            throw new NotFoundError(`User profile not found for ID: ${userId}`);
-        }
-
-        // Check if user is authorized to update this profile
-        if (req.user && req.user.providerId !== userId) {
-            throw new UnauthorizedError("Not authorized to update this profile");
-        }
-
         try {
-            await req.app.locals.userCollection.updateOne(
-                { providerId: userId },
+            console.log('Received profile update request:', req.body);
+
+            // Get providerId from JWT token
+            const authHeader = req.headers.authorization;
+            if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                throw new UnauthorizedError('No token provided');
+            }
+
+            const token = authHeader.split(' ')[1];
+            const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+            const providerId = decoded.providerId;
+
+            console.log('Decoded token:', { providerId, email: decoded.email });
+
+            // Validate request body
+            const validation = profileDataSchema.safeParse(req.body.profileData);
+            if (!validation.success) {
+                console.error('Validation error:', validation.error);
+                throw new ValidationError("Invalid profile data", validation.error.errors);
+            }
+
+            const profileData = validation.data;
+            console.log('Validated profile data:', profileData);
+
+            // Update user profile
+            const result = await req.app.locals.userCollection.updateOne(
+                { providerId },
                 {
                     $set: {
                         ...profileData,
+                        isRegistrationComplete: true,
                         updatedAt: new Date()
                     }
                 }
             );
-            res.status(200).json({ message: "User profile updated successfully" });
+
+            console.log('Database update result:', result);
+
+            if (result.matchedCount === 0) {
+                throw new NotFoundError(`User not found with providerId: ${providerId}`);
+            }
+
+            res.status(200).json({
+                message: "Profile updated successfully",
+                isRegistrationComplete: true
+            });
         } catch (error) {
-            throw new DatabaseError("Failed to update user profile", error);
+            console.error('Profile update error:', error);
+            if (error instanceof ValidationError || error instanceof UnauthorizedError || error instanceof NotFoundError) {
+                throw error;
+            }
+            throw new DatabaseError("Failed to update profile", error);
         }
     }
 };

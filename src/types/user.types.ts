@@ -9,7 +9,10 @@ export interface BaseUser {
     provider: 'google' | 'apple';
     firstName?: string;
     lastName?: string;
+    displayName?: string;
     profilePicture?: string;
+    emailVerified?: boolean;
+    accountStatus?: 'active' | 'disabled';
     ageRange?: "18-24" | "25-34" | "35-44" | "45-54" | "55+";
     sex?: "male" | "female" | "other";
     fitnessLevel?: "beginner" | "intermediate" | "advanced";
@@ -18,6 +21,7 @@ export interface BaseUser {
     // Token management
     refreshToken?: string;
     tokenExpiresAt?: Date;
+    isRegistrationComplete?: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -45,7 +49,10 @@ export const userSchema = z.object({
     provider: z.enum(['google', 'apple']),
     firstName: z.string().optional(),
     lastName: z.string().optional(),
+    displayName: z.string().optional(),
     profilePicture: z.string().optional(),
+    emailVerified: z.boolean().optional(),
+    accountStatus: z.enum(['active', 'disabled']).optional(),
     ageRange: z.enum(["18-24", "25-34", "35-44", "45-54", "55+"]).optional(),
     sex: z.enum(["male", "female", "other"]).optional(),
     fitnessLevel: z.enum(["beginner", "intermediate", "advanced"]).optional(),
@@ -54,6 +61,7 @@ export const userSchema = z.object({
     // Token management
     refreshToken: z.string().optional(),
     tokenExpiresAt: z.date().optional(),
+    isRegistrationComplete: z.boolean().optional(),
     createdAt: z.date(),
     updatedAt: z.date()
 });
@@ -65,7 +73,10 @@ export const userMongoSchema = new Schema({
     provider: { type: String, required: true, enum: ['google', 'apple'] },
     firstName: String,
     lastName: String,
+    displayName: String,
     profilePicture: String,
+    emailVerified: Boolean,
+    accountStatus: { type: String, enum: ['active', 'disabled'], default: undefined },
     ageRange: { type: String, enum: ["18-24", "25-34", "35-44", "45-54", "55+"], default: undefined },
     sex: { type: String, enum: ["male", "female", "other"], default: undefined },
     fitnessLevel: { type: String, enum: ["beginner", "intermediate", "advanced"], default: undefined },
@@ -74,6 +85,7 @@ export const userMongoSchema = new Schema({
     // Token management
     refreshToken: { type: String, select: false }, // Not included in default queries
     tokenExpiresAt: Date,
+    isRegistrationComplete: Boolean,
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 }, {

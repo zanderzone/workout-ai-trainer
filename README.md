@@ -290,3 +290,128 @@ git commit -m "docs: update README with new setup instructions"
 
 While Workout AI Trainer uses AI to generate WODs, it is essential to consult with a qualified fitness professional or healthcare provider before beginning any new exercise program. The information provided is for informational purposes only and should not be considered a substitute for professional guidance.
 
+## Local Development Setup
+
+### Prerequisites
+- Node.js v18+
+- Docker (for MongoDB and PostgreSQL)
+- ngrok (for OAuth callback URLs)
+- Apple Developer Account (for Apple Sign In)
+- Google Cloud Project (for Google OAuth)
+
+### Environment Variables
+Create a `.env` file in the root directory with the following variables:
+
+```bash
+# Database Configuration
+USE_LOCAL_MONGO=true
+MONGODB_URI=mongodb://localhost:27017/workouts_ai_trainer
+POSTGRES_URI=postgresql://postgres:secret@localhost:5432/workouts_ai_trainer
+
+# Server
+PORT=3000
+
+# OpenAI API
+OPENAI_API_KEY=your_openai_api_key
+
+# Authentication
+AUTH_ENABLED=true
+JWT_SECRET=your_jwt_secret
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_CALLBACK_URL=https://your-domain.ngrok.app/api/auth/google/callback
+GOOGLE_STATE=google-auth-state
+
+# Apple Sign In
+APPLE_CLIENT_ID=com.your-app-bundle-id
+APPLE_SERVICES_ID=com.your-app-bundle-id.signin.service
+APPLE_TEAM_ID=your_team_id
+APPLE_KEY_ID=your_key_id
+APPLE_PRIVATE_KEY_PATH=config/keys/AuthKey_YOURKEY.p8
+APPLE_CALLBACK_URL=https://your-domain.ngrok.app/api/auth/apple/callback
+
+# Session Management
+SESSION_SECRET=your_session_secret
+
+# Frontend Configuration
+FRONTEND_URL=http://localhost:3001
+API_URL=https://your-domain.ngrok.app
+```
+
+### OAuth Setup
+
+#### Google OAuth Setup
+1. Create a project in Google Cloud Console
+2. Enable OAuth 2.0 and create credentials
+3. Add authorized redirect URIs (your ngrok URL)
+4. Copy Client ID and Secret to `.env`
+
+#### Apple Sign In Setup
+1. Register an App ID in Apple Developer Console
+2. Enable Sign in with Apple capability
+3. Create a Services ID
+4. Generate a private key
+5. Place the private key in `config/keys/`
+6. Update `.env` with your credentials
+
+### Running the Application
+
+1. Start the databases:
+```bash
+docker-compose up -d
+```
+
+2. Start ngrok (required for OAuth):
+```bash
+ngrok http 3000 --domain=your-domain.ngrok.app
+```
+
+3. Install dependencies:
+```bash
+npm install
+```
+
+4. Start the development server:
+```bash
+npm run dev
+```
+
+The application will be available at `http://localhost:3000`
+
+## Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm start` - Start production server
+- `npm test` - Run tests
+- `npm run test:auth` - Run auth flow tests
+- `npm run test:wod` - Run workout generation tests
+
+## Project Structure
+
+```
+.
+├── src/
+│   ├── config/        # Configuration files
+│   ├── controllers/   # Route controllers
+│   ├── middleware/    # Express middleware
+│   ├── routes/        # Express routes
+│   ├── services/      # Business logic
+│   ├── types/         # TypeScript types
+│   └── utils/         # Utility functions
+├── frontend/          # Next.js frontend
+└── scripts/          # Test and utility scripts
+```
+
+## Contributing
+
+1. Create a feature branch
+2. Make your changes
+3. Submit a pull request
+
+## License
+
+ISC
+

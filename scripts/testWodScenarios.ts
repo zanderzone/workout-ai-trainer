@@ -143,12 +143,12 @@ async function testScenario(name: string, data: any): Promise<TestResult> {
     };
 
     try {
-        const response = await axios.post(`${API_URL}/wod`, data);
+        const response = await axios.post(`${API_URL}/api/wod`, data);
         result.status = response.status;
         result.response = response.data;
 
         if (response.data._id) {
-            const getResponse = await axios.get(`${API_URL}/wod/${response.data._id}`);
+            const getResponse = await axios.get(`${API_URL}/api/wod/${response.data._id}`);
             result.fetchedWod = getResponse.data;
         }
 
@@ -298,7 +298,7 @@ async function runTests() {
         // Test invalid WOD ID
         console.log('🔍 Testing Invalid WOD ID');
         try {
-            await axios.get(`${API_URL}/wod/invalid-id`);
+            await axios.get(`${API_URL}/api/wod/invalid-id`);
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 console.log('Expected Error! Status:', error.response?.status);
