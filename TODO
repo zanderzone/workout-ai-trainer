@@ -48,7 +48,7 @@ Workout AI Trainer - MVP (v0.1):
     
   Sprint 2 - Core WOD Features (1 week, 20 hours):
     Essential Error Handling:
-        ☐ Add proper error handling for database connection failures @P0 @2h @id(db-error) @sprint(2) @started(25-03-26 12:15)
+        ✔ Add proper error handling for database connection failures @P0 @2h @id(db-error) @sprint(2) @started(25-03-26 12:15) @done(25-03-26 13:30) @lasted(1h15m33s)
             Notes: Critical for application stability
         ☐ Add proper error handling for OpenAI API failures @P0 @3h @id(openai-error) @sprint(2)
             Notes: Essential as OpenAI is the core service
