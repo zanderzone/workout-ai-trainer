@@ -88,7 +88,7 @@ try {
     }
 
     // 2. Check for OpenAI API specific errors
-    if (error has response property) {
+    if (error && typeof error === "object" && "response" in error) {
         switch (status) {
             case 429: throw OpenAIRateLimitError
             case 400: throw OpenAIInvalidRequestError
