@@ -13,6 +13,8 @@ import { WodType, wodValidationSchema } from "../types/wod.types";
 import { BaseService } from "./base.service";
 import { DatabaseError, handleDatabaseError } from "../errors";
 import { handleOpenAIError, OpenAIResponseError, OpenAIInvalidRequestError } from "../errors";
+import { withRetry } from "../utils/openai-retry";
+import { OpenAIRateLimiter } from "../utils/openai-retry";
 
 dotenv.config();
 
@@ -21,6 +23,7 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 export class OpenAIWorkoutAdapter implements WodAIAdapter {
     private openai: OpenAI;
     private uuidGenerator: () => string;
+    private rateLimiter: OpenAIRateLimiter;
 
     constructor(uuidGenerator: () => string = generateUuid) {
         if (!OPENAI_API_KEY) {
@@ -28,6 +31,7 @@ export class OpenAIWorkoutAdapter implements WodAIAdapter {
         }
         this.openai = new OpenAI({ apiKey: OPENAI_API_KEY });
         this.uuidGenerator = uuidGenerator;
+        this.rateLimiter = new OpenAIRateLimiter(60); // 60 requests per minute
     }
 
     async generateWod(
@@ -49,15 +53,21 @@ export class OpenAIWorkoutAdapter implements WodAIAdapter {
         console.log("User Prompt:", userPrompt);
 
         try {
-            const response = await this.openai.chat.completions.create({
-                model: "gpt-4o-mini",
-                messages: [
-                    { role: "system", content: systemPrompt },
-                    { role: "user", content: userPrompt }
-                ],
-                temperature: 1.0,
-                max_tokens: 4096,
-                response_format: { type: "json_object" }
+            // Wait for rate limit before making the request
+            await this.rateLimiter.waitForRateLimit();
+
+            // Use retry logic for the API call
+            const response = await withRetry(async () => {
+                return await this.openai.chat.completions.create({
+                    model: "gpt-4o-mini",
+                    messages: [
+                        { role: "system", content: systemPrompt },
+                        { role: "user", content: userPrompt }
+                    ],
+                    temperature: 1.0,
+                    max_tokens: 4096,
+                    response_format: { type: "json_object" }
+                });
             });
 
             if (!response.choices[0].message.content) {
