@@ -30,7 +30,7 @@ Workout AI Trainer - MVP (v0.1):
           - Added support for inverse protection (redirecting authenticated users away from auth pages)
 
     Prompt Generation Improvements:
-      ☐ Split prompt generation into system and user prompts @P0 @4h @id(prompt-split) @sprint(1)
+      ✔ Split prompt generation into system and user prompts @P0 @4h @id(prompt-split) @sprint(1) @started(25-03-25 10:55) @done(25-03-26 10:56) @lasted(1d1m31s)
           Notes: Improve prompt generation modularity and maintainability
           Subtasks:
           - Create separate prompt files:
@@ -46,12 +46,7 @@ Workout AI Trainer - MVP (v0.1):
           - Consider adding prompt templates for different WOD types
           - Add support for prompt customization based on user experience level
     
-  Sprint 2 - Core WOD Features (1 week, 25 hours):
-    WOD API:
-      ☐ Implement WOD pagination @P0 @4h @id(wod-pagination) @sprint(1)
-          Notes: Limit and offset for pagination
-      ☐ Add date range filter for WODs @P0 @3h @id(wod-date-filter) @sprint(1)
-          Notes: Filter WODs by creation date range
+  Sprint 2 - Core WOD Features (1 week, 20 hours):
     Essential Error Handling:
         ☐ Add proper error handling for database connection failures @P0 @2h @id(db-error) @sprint(2)
             Notes: Critical for application stability
@@ -65,38 +60,116 @@ Workout AI Trainer - MVP (v0.1):
             Notes: Form with essential workout preferences
         ☐ Implement WOD display component @P0 @3h @id(wod-display) @sprint(2)
             Notes: Display generated workout details
-        ☐ Add WOD history page @P0 @3h @id(wod-history) @sprint(2)
-            Notes: List of user's past workouts
         ☐ Add loading states and basic error messages @P0 @2h @id(ui-feedback) @sprint(2)
             Notes: User feedback during API calls
-    
-    API Integration:
+
+    Head Coach Personality:
+        ☐ Define MVP head coach personality @P0 @4h @id(head-coach) @sprint(2)
+            Notes: Define the default coach personality for MVP
+            Subtasks:
+            - Define Coach Background:
+              * Level 4 CrossFit Coach
+              * Certified Personal Trainer
+              * Experience with diverse athlete levels
+              * Community-focused coaching style
+            - Define Coaching Style:
+              * High-energy, positive reinforcement
+              * Focus on fundamentals and form
+              * Encouraging and supportive tone
+              * Clear, simple explanations
+            - Define System Prompt Template:
+              * Customize system prompt for motivational style
+              * Include scaling guidelines for all levels
+              * Add emphasis on form and safety
+              * Include community-building elements
+            - Create Coach Profile:
+              * Name and background
+              * Coaching philosophy
+              * Specialties and focus areas
+              * Communication style
+              * Example workout templates
+
+    Basic API Integration:
         ☐ Implement basic rate limiting for OpenAI API @P0 @3h @id(basic-rate-limit) @sprint(2)
             Notes: Prevent API quota exhaustion
             Subtasks:
             - Implement token-based rate limiting for OpenAI API calls
             - Set up monitoring for OpenAI API usage
             - Add error handling for rate limit exceeded
-            - Implement exponential backoff strategy
             - Add logging for rate limit events
-            - Consider implementing a queue system for high-demand periods
 
-        ☐ Add TypeScript types for API responses @P0 @3h @id(types) @sprint(2)
+  Sprint 3 - WOD Feature Enhancements (1 week, 25 hours):
+    WOD API Enhancements:
+        ☐ Implement WOD pagination @P1 @4h @id(wod-pagination) @sprint(3)
+            Notes: Limit and offset for pagination
+        ☐ Add date range filter for WODs @P1 @3h @id(wod-date-filter) @sprint(3)
+            Notes: Filter WODs by creation date range
+        ☐ Add WOD history page @P1 @3h @id(wod-history) @sprint(3)
+            Notes: List of user's past workouts
+        ☐ Add TypeScript types for API responses @P1 @3h @id(types) @sprint(3)
             Notes: Type safety for API integration
-  
+
+    Enhanced Rate Limiting:
+        ☐ Implement advanced rate limiting features @P1 @4h @id(advanced-rate-limit) @sprint(3)
+            Notes: Enhanced rate limiting with advanced features
+            Subtasks:
+            - Implement exponential backoff strategy
+            - Consider implementing a queue system for high-demand periods
+            - Add rate limit status endpoint
+            - Add rate limit analytics dashboard
+
+    Coach Performance Tracking:
+        ☐ Implement basic coach performance metrics @P1 @3h @id(coach-metrics) @sprint(3)
+            Notes: Track basic coach effectiveness
+            Subtasks:
+            - User engagement rates
+            - Workout completion rates
+            - User satisfaction scores
+            - Return user rates
+
+    Infrastructure Requirements:
+        ☐ Implement LLM request scaling solution @P0 @8h @id(llm-scaling) @sprint(3)
+            Notes: Design and implement scalable solution for handling LLM requests
+            Subtasks:
+            - Request Queue System:
+              * Implement Redis-based request queue
+              * Add request prioritization (premium users, urgent requests)
+              * Set up queue monitoring and alerts
+              * Add queue status endpoint
+            - Cost Optimization:
+              * Implement request batching for similar prompts
+              * Add response caching for common requests
+              * Set up cost monitoring and alerts
+              * Implement usage quotas per user tier
+            - Load Balancing:
+              * Add request distribution across multiple API keys
+              * Implement fallback mechanisms for API failures
+              * Add request retry logic with exponential backoff
+              * Set up health checks for API endpoints
+            - Monitoring & Analytics:
+              * Track request patterns and usage spikes
+              * Monitor API costs and response times
+              * Set up alerts for unusual patterns
+              * Create usage analytics dashboard
+
   Sprint Summary:
   Sprint 1 (20h): WOD GET API, Core Auth & Basic UI
   - Focus: User authentication and basic UI setup
   - Key Deliverables: Registration, login, protected routes
   - Dependencies: None
   
-  Sprint 2 (25h): Core WOD Features
-  - Focus: Essential WOD generation and display, WOD API (GET all user WODs)
-  - Key Deliverables: WOD form, display, history, basic error handling, WOD API (GET all user WODs)
+  Sprint 2 (23h): Core WOD Features
+  - Focus: Essential WOD generation and display, basic error handling, head coach personality
+  - Key Deliverables: WOD form, display, basic error handling, head coach personality
   - Dependencies: Authentication from Sprint 1
   
-  Total MVP Time: 45 hours
-  MVP Duration: 2 weeks
+  Sprint 3 (25h): WOD Feature Enhancements
+  - Focus: Enhanced WOD features, advanced rate limiting, coach performance tracking, LLM scaling
+  - Key Deliverables: WOD pagination, history, advanced rate limiting, performance metrics, scalable LLM infrastructure
+  - Dependencies: Core WOD Features from Sprint 2
+  
+  Total MVP Time: 68 hours
+  MVP Duration: 3 weeks
   
   Future Improvements (v0.2):
   ☐ Enhanced Features:
@@ -131,24 +204,116 @@ Workout AI Trainer - MVP (v0.1):
   ☐ AI Coach Profiles Feature:
       ☐ Design coach personality system @P1 @6h @id(coach-design)
           Notes: Define coach attributes, personality traits, and experience templates
+          Subtasks:
+          - Define coach experience levels:
+            * Beginner Coaches: Focus on fundamentals, form, and building confidence
+            * Intermediate Coaches: Balance technique with intensity
+            * Advanced Coaches: Complex programming and competition prep
+            * Competitive Coaches: Games-level programming and strategy
+          - Define coach specialties:
+            * Olympic Weightlifting
+            * Gymnastics
+            * Endurance
+            * Strength & Conditioning
+            * Competition Prep
+            * General Fitness
+          - Define coaching styles:
+            * Motivational
+            * Technical
+            * Strategic
+            * Holistic
+            * Data-driven
+            * Community-focused
       ☐ Create coach profile database schema @P1 @3h @id(coach-schema) @depends(coach-design)
           Notes: Store coach backgrounds, specialties, and system prompts
+          Subtasks:
+          - Coach Profile Schema:
+            * Basic Info (name, experience level, specialties)
+            * Background (certifications, achievements, experience)
+            * Coaching Style (personality traits, communication style)
+            * System Prompt Template (customized for coach's style)
+            * Success Metrics (tracking coach's effectiveness)
+          - Coach Assignment Rules:
+            * Automatic assignment based on user fitness level
+            * Manual selection options
+            * Coach switching capabilities
+            * Coach preference saving
       ☐ Implement coach profile management API @P1 @4h @id(coach-api) @depends(coach-schema)
           Notes: CRUD operations for coach profiles
+          Subtasks:
+          - Coach Assignment Endpoints:
+            * GET /api/coaches - List available coaches
+            * GET /api/coaches/recommended - Get coach recommendations based on user profile
+            * POST /api/users/:userId/coach - Assign coach to user
+            * PUT /api/users/:userId/coach - Change user's coach
+            * GET /api/users/:userId/coach - Get user's current coach
+          - Coach Management Endpoints:
+            * POST /api/coaches - Create new coach profile
+            * PUT /api/coaches/:id - Update coach profile
+            * DELETE /api/coaches/:id - Remove coach profile
+            * GET /api/coaches/:id - Get coach details
       ☐ Add coach selection UI @P1 @5h @id(coach-ui) @depends(coach-api)
           Notes: Browse and select coaches with personality previews
+          Subtasks:
+          - Coach Discovery Page:
+            * Filter coaches by experience level and specialties
+            * View coach profiles with detailed backgrounds
+            * Preview coaching style and personality
+            * See coach's success metrics
+          - Coach Selection Flow:
+            * Automatic coach recommendation based on user profile
+            * Manual coach browsing and selection
+            * Coach comparison view
+            * Coach switching interface
       ☐ Enhance WOD generation with coach personalities @P1 @8h @id(coach-wod) @depends(coach-api)
           Notes: Integrate coach's background into LLM prompt
+          Subtasks:
+          - Coach-Specific Prompt Generation:
+            * Customize system prompt based on coach's style
+            * Adjust coaching language and tone
+            * Include coach's expertise in movement selection
+            * Add coach's preferred training methodologies
+          - Experience Level Adaptation:
+            * Scale workout complexity based on user's level
+            * Adjust coaching cues and explanations
+            * Modify movement selection and progression
+            * Customize feedback and motivation style
       ☐ Add coach feedback system @P2 @6h @id(coach-feedback) @depends(coach-wod)
           Notes: Personalized feedback based on coach's style
+          Subtasks:
+          - Feedback Collection:
+            * Post-workout feedback forms
+            * Progress tracking metrics
+            * Coach effectiveness ratings
+            * User satisfaction surveys
+          - Coach Performance Analytics:
+            * Track coach's success rates
+            * Monitor user progress under each coach
+            * Analyze coach-user compatibility
+            * Generate coach performance reports
       ☐ Create sample coach profiles @P1 @4h @id(coach-samples) @depends(coach-design)
           Notes: Define 5-10 distinct coach personalities
           Examples:
           - "The Motivator": High-energy, positive reinforcement
+            * Specialties: General Fitness, Community Building
+            * Style: Encouraging, Supportive
+            * Best for: Beginners, Community-focused athletes
           - "The Veteran": Ex-military, disciplined approach
+            * Specialties: Strength & Conditioning, Endurance
+            * Style: Structured, Methodical
+            * Best for: Intermediate, Goal-oriented athletes
           - "The Scientist": Data-driven, scientific explanations
+            * Specialties: Olympic Weightlifting, Technical Training
+            * Style: Analytical, Precise
+            * Best for: Advanced, Technique-focused athletes
           - "The Competitor": Former athlete, competition-focused
+            * Specialties: Competition Prep, High-intensity Training
+            * Style: Intense, Strategic
+            * Best for: Competitive, Games-level athletes
           - "The Holistic Coach": Mind-body wellness approach
+            * Specialties: General Fitness, Recovery
+            * Style: Balanced, Mindful
+            * Best for: All levels, Wellness-focused athletes
   
   ☐ Testing & Documentation:
       ☐ Add test suite for API endpoints @P1 @8h
