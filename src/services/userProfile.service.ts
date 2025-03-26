@@ -1,7 +1,7 @@
 import { Collection } from "mongodb";
 import { UserProfile, userProfileSchema } from "../types/userProfile.types";
 import { BaseService } from "./base.service";
-import { DatabaseError } from "../utils/error-handling";
+import { DatabaseError } from "../errors";
 
 export class UserProfileService extends BaseService<UserProfile> {
     constructor(collection: Collection<UserProfile>) {
