@@ -1,8 +1,11 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import express from 'express';
+import cors from 'cors';
 import app from './app';
 import { connectDatabases, closeDatabaseConnection } from './services/database.service';
-import { DatabaseConnectionError, handleDatabaseConnectionError, logDatabaseError } from './utils/error-handling';
+import { DatabaseConnectionError, handleDatabaseError, logDatabaseError } from './errors/database';
+import wodRouter from './routes/wod.routes';
 
 // Load environment variables from .env file
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -89,8 +92,8 @@ async function startServer() {
         });
 
     } catch (error) {
-        logDatabaseError(error, 'startServer');
-        handleDatabaseConnectionError(error);
+        logDatabaseError(error, 'Server startup');
+        handleDatabaseError(error);
     }
 }
 

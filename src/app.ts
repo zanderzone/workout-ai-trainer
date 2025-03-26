@@ -1,12 +1,13 @@
 import express, { Request, Response, NextFunction } from "express";
 import passport from "passport";
 import session from "express-session";
+import MongoStore from "connect-mongo";
 import { config } from "dotenv";
 import OpenAI from "openai";
 import { connectDatabases } from "./services/database.service";
-import wodRoutes from "./routes/wod.routes";
-import authRoutes from "./routes/auth.routes";
-import { HttpError } from "./utils/errors";
+import wodRouter from "./routes/wod.routes";
+import authRouter from "./routes/auth.routes";
+import { HttpError } from "./errors/base";
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { errorHandler } from './middleware/error.middleware';
@@ -23,36 +24,45 @@ const app = express();
 
 // Configure CORS with credentials
 app.use(cors({
-    origin: [
-        process.env.FRONTEND_URL || 'http://localhost:3001',
-        'https://appleid.apple.com'
-    ],
-    credentials: true,
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+  origin: [
+    process.env.FRONTEND_URL || 'http://localhost:3001',
+    'https://appleid.apple.com'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
-// app.use(cors({
-//     origin: process.env.FRONTEND_URL || 'http://localhost:3001',
-//     credentials: true
-// }));
 
 // Parse cookies
 app.use(cookieParser());
 
-// Configure session middleware
+// Configure session middleware with MongoDB store
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI || 'mongodb://localhost:27017/workout-ai-trainer',
+    ttl: 24 * 60 * 60, // 1 day
+    autoRemove: 'native', // Automatically remove expired sessions
+    crypto: {
+      secret: process.env.SESSION_SECRET || 'your-secret-key'
     }
+  }),
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+    httpOnly: true, // Prevent JavaScript access to the cookie
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'lax' // Protect against CSRF
+  }
 }));
 
 // Initialize passport
 app.use(passport.initialize());
 app.use(passport.session());
+
+// Configure Passport strategies
+setupPassport();
 
 // Parse JSON bodies
 app.use(express.json());
@@ -77,7 +87,7 @@ app.use((req, res, next) => {
 
   // Intercept and log the response
   const originalSend = res.send;
-  res.send = function(body) {
+  res.send = function (body) {
     console.log('\U0001F4E4 Outgoing Response:', {
       timestamp: new Date().toISOString(),
       statusCode: res.statusCode,
@@ -93,41 +103,41 @@ app.use((req, res, next) => {
 
 // Health check endpoint
 app.get('/api/health', (req: Request, res: Response) => {
-    const googleConfigValid = validateGoogleConfig();
-    const appleConfigValid = validateAppleConfig();
+  const googleConfigValid = validateGoogleConfig();
+  const appleConfigValid = validateAppleConfig();
 
-    const response = {
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        services: {
-            oauth: {
-                google: googleConfigValid,
-                apple: appleConfigValid
-            }
-        }
-    };
+  const response = {
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    services: {
+      oauth: {
+        google: googleConfigValid,
+        apple: appleConfigValid
+      }
+    }
+  };
 
-    res.json(response);
+  res.json(response);
 });
 
 // Test endpoint for debugging request handling
 app.post('/api/auth/test-callback', (req: Request, res: Response) => {
-    console.log('Test callback hit');
-    console.log('Headers:', req.headers);
-    console.log('Body:', req.body);
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.json({ 
-        message: 'Test callback received', 
-        headers: req.headers, 
-        body: req.body 
-    });
+  console.log('Test callback hit');
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.json({
+    message: 'Test callback received',
+    headers: req.headers,
+    body: req.body
+  });
 });
 
 // Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/wod', wodRoutes);
+app.use('/api/auth', authRouter);
+app.use('/api/wod', wodRouter);
 app.use('/api/test', testRoutes);
 
 // Error handling
