@@ -64,6 +64,7 @@ const scenarios = {
                 injuriesOrLimitations: ["left knee tightness"]
             } as UserProfile,
             workoutOptions: {
+                userId: uuidv4(),
                 totalAvailableTime: "45 minutes",
                 userDescription: "I'd like an intense workout that focuses on strength and conditioning. Can you structure this for a group of experienced and intermediate level Crossfit athetes?",
                 workoutDuration: "8 minutes <= duration <= 10 minutes",
@@ -89,7 +90,7 @@ const scenarios = {
                 location: "garage home gym",
                 indoorAndOutdoorWorkout: false,
                 includeExercises: [],
-                excludeExcercises: []
+                excludeExercises: []
             } as WorkoutOptions
         }
     },
