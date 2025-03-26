@@ -1,6 +1,7 @@
 import { Collection, WithId, Document, OptionalUnlessRequiredId } from "mongodb";
 import { BaseCollection } from "./base.collection";
-import { DatabaseError } from "../utils/error-handling";
+import { DatabaseError } from "../errors";
+import { z } from "zod";
 
 export abstract class BaseService<T extends Document> extends BaseCollection<T> {
     constructor(collection: Collection<T>) {
