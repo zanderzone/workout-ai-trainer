@@ -5,6 +5,9 @@ import { z } from "zod";
 import { WorkoutOptions } from "../types/workoutOptions.types";
 import { UserProfile } from "../types/userProfile.types";
 import { v4 as uuidv4 } from 'uuid';
+import { WodService } from "../services/wod.service";
+import { formatOpenAIErrorResponse } from "../errors/openai";
+import { handleOpenAIError } from "../errors/openai";
 
 // Request validation schema based on testWodGeneration.ts parameters
 const createWodRequestSchema = z.object({
@@ -95,18 +98,11 @@ const wodController = {
                 return;
             }
 
-            // Type guard for OpenAI API errors
-            if (error && typeof error === 'object' && 'response' in error &&
-                (error as OpenAIError).response?.status === 429) {
-                res.status(429).json({ error: 'Rate limit exceeded' });
-                return;
-            }
-
-            // Safe error message extraction
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            res.status(500).json({
-                error: 'Failed to generate WOD',
-                message: errorMessage
+            // Handle OpenAI errors
+            const errorResponse = formatOpenAIErrorResponse(error);
+            res.status(errorResponse.status).json({
+                error: errorResponse.message,
+                details: errorResponse.error
             });
         }
     },

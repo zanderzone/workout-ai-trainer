@@ -19,6 +19,8 @@
  * const markdown = formatWodToMarkdown(wodJson);
  * console.log(markdown);
  */
+import { WorkoutPlanDB } from "../types/workout.types";
+
 interface ScalingOption {
   description?: string;
   exercise?: string;
@@ -78,6 +80,10 @@ interface Workout {
 interface WOD {
   description: string;
   duration?: string;
+  wodId: string;
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
   wod: {
     warmup?: WarmupOrCooldown;
     workout: Workout;
@@ -92,175 +98,164 @@ interface WOD {
  * @returns A formatted markdown string
  */
 export function formatWodToMarkdown(wod: WOD): string {
-  let markdown = '';
+  const { description, duration, wod: workout } = wod;
 
-  // Add title and description
-  markdown += `# ${wod.description}\n\n`;
-  
-  if (wod.duration) {
-    markdown += `**Total Duration:** ${wod.duration}\n\n`;
+  let markdown = `# ${description}\n\n`;
+  if (duration) {
+    markdown += `**Total Duration:** ${duration}\n\n`;
   }
 
-  // Format warmup section
-  if (wod.wod.warmup) {
-    markdown += formatWarmupOrCooldown(wod.wod.warmup, 'Warm-up');
+  // Warmup section
+  if (workout.warmup) {
+    markdown += `## Warm-up\n\n`;
+    markdown += `**Type:** ${workout.warmup.type}\n\n`;
+    markdown += `**Duration:** ${workout.warmup.duration}\n\n`;
+
+    if (workout.warmup.activities && workout.warmup.activities.length > 0) {
+      markdown += `### Activities:\n\n`;
+      workout.warmup.activities.forEach(activity => {
+        markdown += `* **${activity.activity}** `;
+        if (activity.duration) markdown += `(Duration: ${activity.duration}, `;
+        if (activity.intensity) markdown += `Intensity: ${activity.intensity}, `;
+        if (activity.reps) markdown += `Reps: ${activity.reps}, `;
+        if (activity.weight) markdown += `Weight: ${activity.weight}, `;
+        if (activity.height) markdown += `Height: ${activity.height}, `;
+        if (activity.distance) markdown += `Distance: ${activity.distance}`;
+        markdown += `)\n`;
+      });
+      markdown += `\n`;
+    }
   }
 
-  // Format workout section
-  markdown += formatWorkout(wod.wod.workout);
+  // Main workout section
+  if (workout.workout) {
+    markdown += `## Workout\n\n`;
+    markdown += `**Type:** ${workout.workout.type}\n\n`;
+    markdown += `**Duration:** ${workout.workout.duration}\n\n`;
+    if (workout.workout.wodDescription) markdown += `${workout.workout.wodDescription}\n\n`;
+    if (workout.workout.wodStrategy) markdown += `### Strategy\n\n${workout.workout.wodStrategy}\n\n`;
+    if (workout.workout.wodGoal) markdown += `### Goal\n\n${workout.workout.wodGoal}\n\n`;
+    if (workout.workout.wodCutOffTime) markdown += `**Cut-off Time:** ${workout.workout.wodCutOffTime}\n\n`;
+    if (workout.workout.rounds) markdown += `**Rounds:** ${workout.workout.rounds}\n\n`;
+    if (workout.workout.rest) markdown += `**Rest:** ${workout.workout.rest}\n\n`;
 
-  // Format cooldown section
-  if (wod.wod.cooldown) {
-    markdown += formatWarmupOrCooldown(wod.wod.cooldown, 'Cool-down');
+    if (workout.workout.exercises && workout.workout.exercises.length > 0) {
+      markdown += `### Exercises:\n\n`;
+      workout.workout.exercises.forEach(exercise => {
+        markdown += `#### ${exercise.exercise}\n\n`;
+        if (exercise.reps) markdown += `**Reps:** ${exercise.reps} | `;
+        if (exercise.weight) markdown += `**Weight:** ${exercise.weight} | `;
+        if (exercise.height) markdown += `**Height:** ${exercise.height} | `;
+        if (exercise.distance) markdown += `**Distance:** ${exercise.distance} | `;
+        if (exercise.type) markdown += `**Type:** ${exercise.type}\n\n`;
+        if (exercise.goal) markdown += `**Goal:** ${exercise.goal}\n\n`;
+
+        if (exercise.scalingOptions && exercise.scalingOptions.length > 0) {
+          markdown += `**Scaling Options:**\n\n`;
+          exercise.scalingOptions.forEach(option => {
+            markdown += `* ${option.description}\n`;
+            if (option.exercise) markdown += `  * Exercise: ${option.exercise}\n`;
+            if (option.reps) markdown += `  * Reps: ${option.reps}\n`;
+          });
+          markdown += `\n`;
+        }
+
+        if (exercise.personalBestReference) {
+          markdown += `💪 **Reference your personal best for this movement** 💪\n\n`;
+        }
+      });
+    }
   }
 
-  // Add recovery notes
-  if (wod.wod.recovery) {
-    markdown += `## Recovery Notes\n\n${wod.wod.recovery}\n\n`;
+  // Cooldown section
+  if (workout.cooldown) {
+    markdown += `## Cool-down\n\n`;
+    markdown += `**Type:** ${workout.cooldown.type}\n\n`;
+    markdown += `**Duration:** ${workout.cooldown.duration}\n\n`;
+
+    if (workout.cooldown.activities && workout.cooldown.activities.length > 0) {
+      markdown += `### Activities:\n\n`;
+      workout.cooldown.activities.forEach(activity => {
+        markdown += `* **${activity.activity}** `;
+        if (activity.duration) markdown += `(Duration: ${activity.duration}, `;
+        if (activity.intensity) markdown += `Intensity: ${activity.intensity}`;
+        markdown += `)\n`;
+      });
+      markdown += `\n`;
+    }
+  }
+
+  // Recovery notes
+  if (workout.recovery) {
+    markdown += `## Recovery Notes\n\n`;
+    markdown += `${workout.recovery}\n\n`;
   }
 
   return markdown;
 }
 
-/**
- * Formats warmup or cooldown section
- * @param section The warmup or cooldown section
- * @param title Section title (Warm-up or Cool-down)
- * @returns Formatted markdown string
- */
-function formatWarmupOrCooldown(section: WarmupOrCooldown, title: string): string {
+// Helper functions for formatting individual sections can be implemented and exported here if needed
+
+export function formatWarmupOrCooldown(section: WarmupOrCooldown, title: string = "Warm-up"): string {
   let markdown = `## ${title}\n\n`;
-  
-  if (section.type) {
-    markdown += `**Type:** ${section.type}\n\n`;
-  }
-  
-  if (section.duration) {
-    markdown += `**Duration:** ${section.duration}\n\n`;
-  }
-  
+  markdown += `**Type:** ${section.type}\n\n`;
+  markdown += `**Duration:** ${section.duration}\n\n`;
+
   if (section.activities && section.activities.length > 0) {
     markdown += `### Activities:\n\n`;
-    
-    for (const activity of section.activities) {
-      if (!activity.activity) continue;  // Skip if no activity name
-      
-      markdown += `* **${activity.activity}**`;
-      
-      const details: string[] = [];
-      if (activity.duration) details.push(`Duration: ${activity.duration}`);
-      if (activity.intensity) details.push(`Intensity: ${activity.intensity}`);
-      if (activity.reps) details.push(`Reps: ${activity.reps}`);
-      if (activity.weight) details.push(`Weight: ${activity.weight}`);
-      if (activity.height) details.push(`Height: ${activity.height}`);
-      if (activity.distance) details.push(`Distance: ${activity.distance}`);
-      
-      if (details.length > 0) {
-        markdown += ` (${details.join(', ')})`;
-      }
-      markdown += '\n';
-      
-      // Format nested exercises if they exist
-      if (activity.exercises && activity.exercises.length > 0) {
-        for (const exercise of activity.exercises) {
-          const exerciseDetails: string[] = [];
-          if (exercise.reps) exerciseDetails.push(`${exercise.reps} reps`);
-          if (exercise.sets) exerciseDetails.push(`${exercise.sets} sets`);
-          if (exercise.rest) exerciseDetails.push(`Rest: ${exercise.rest}`);
-          
-          const detailsText = exerciseDetails.length > 0 ? ` - ${exerciseDetails.join(', ')}` : '';
-          markdown += `  * ${exercise.name}${detailsText}\n`;
-        }
-      }
-    }
-    markdown += '\n';
+    section.activities.forEach(activity => {
+      markdown += `* **${activity.activity}** `;
+      if (activity.duration) markdown += `(Duration: ${activity.duration}, `;
+      if (activity.intensity) markdown += `Intensity: ${activity.intensity}, `;
+      if (activity.reps) markdown += `Reps: ${activity.reps}, `;
+      if (activity.weight) markdown += `Weight: ${activity.weight}, `;
+      if (activity.height) markdown += `Height: ${activity.height}, `;
+      if (activity.distance) markdown += `Distance: ${activity.distance}`;
+      markdown += `)\n`;
+    });
+    markdown += `\n`;
   }
-  
+
   return markdown;
 }
 
-/**
- * Formats the workout section
- * @param workout The workout section
- * @returns Formatted markdown string
- */
-function formatWorkout(workout: Workout): string {
+export function formatWorkout(workout: Workout): string {
   let markdown = `## Workout\n\n`;
-  
-  if (workout.type) {
-    markdown += `**Type:** ${workout.type}\n\n`;
-  }
-  
-  if (workout.wodDescription) {
-    markdown += `${workout.wodDescription}\n\n`;
-  }
-  
-  const workoutDetails: string[] = [];
-  if (workout.duration) workoutDetails.push(`**Duration:** ${workout.duration}`);
-  if (workout.wodCutOffTime) workoutDetails.push(`**Cut-off Time:** ${workout.wodCutOffTime}`);
-  if (workout.rounds !== undefined) workoutDetails.push(`**Rounds:** ${workout.rounds}`);
-  if (workout.rest) workoutDetails.push(`**Rest:** ${workout.rest}`);
-  
-  if (workoutDetails.length > 0) {
-    markdown += workoutDetails.join(' | ') + '\n\n';
-  }
-  
-  if (workout.wodStrategy) {
-    markdown += `### Strategy\n\n${workout.wodStrategy}\n\n`;
-  }
-  
-  if (workout.wodGoal) {
-    markdown += `### Goal\n\n${workout.wodGoal}\n\n`;
-  }
-  
-  // Format exercises
+  markdown += `**Type:** ${workout.type}\n\n`;
+  markdown += `**Duration:** ${workout.duration}\n\n`;
+  if (workout.wodDescription) markdown += `${workout.wodDescription}\n\n`;
+  if (workout.wodStrategy) markdown += `### Strategy\n\n${workout.wodStrategy}\n\n`;
+  if (workout.wodGoal) markdown += `### Goal\n\n${workout.wodGoal}\n\n`;
+  if (workout.wodCutOffTime) markdown += `**Cut-off Time:** ${workout.wodCutOffTime}\n\n`;
+  if (workout.rounds) markdown += `**Rounds:** ${workout.rounds}\n\n`;
+  if (workout.rest) markdown += `**Rest:** ${workout.rest}\n\n`;
+
   if (workout.exercises && workout.exercises.length > 0) {
     markdown += `### Exercises:\n\n`;
-    
-    for (const exercise of workout.exercises) {
+    workout.exercises.forEach(exercise => {
       markdown += `#### ${exercise.exercise}\n\n`;
-      
-      const details: string[] = [];
-      if (exercise.reps) details.push(`**Reps:** ${exercise.reps}`);
-      if (exercise.weight) details.push(`**Weight:** ${exercise.weight}`);
-      if (exercise.height) details.push(`**Height:** ${exercise.height}`);
-      if (exercise.distance) details.push(`**Distance:** ${exercise.distance}`);
-      if (exercise.type) details.push(`**Type:** ${exercise.type}`);
-      
-      if (details.length > 0) {
-        markdown += details.join(' | ') + '\n\n';
+      if (exercise.reps) markdown += `**Reps:** ${exercise.reps} | `;
+      if (exercise.weight) markdown += `**Weight:** ${exercise.weight} | `;
+      if (exercise.height) markdown += `**Height:** ${exercise.height} | `;
+      if (exercise.distance) markdown += `**Distance:** ${exercise.distance} | `;
+      if (exercise.type) markdown += `**Type:** ${exercise.type}\n\n`;
+      if (exercise.goal) markdown += `**Goal:** ${exercise.goal}\n\n`;
+
+      if (exercise.scalingOptions && exercise.scalingOptions.length > 0) {
+        markdown += `**Scaling Options:**\n\n`;
+        exercise.scalingOptions.forEach(option => {
+          markdown += `* ${option.description}\n`;
+          if (option.exercise) markdown += `  * Exercise: ${option.exercise}\n`;
+          if (option.reps) markdown += `  * Reps: ${option.reps}\n`;
+        });
+        markdown += `\n`;
       }
-      
+
       if (exercise.personalBestReference) {
         markdown += `💪 **Reference your personal best for this movement** 💪\n\n`;
       }
-      
-      // Format scaling options
-      if (exercise.scalingOptions && exercise.scalingOptions.length > 0) {
-        markdown += `**Scaling Options:**\n\n`;
-        
-        for (const option of exercise.scalingOptions) {
-          if (!option.description) continue;  // Skip if no description
-          
-          markdown += `* ${option.description}`;
-          
-          const optionDetails: string[] = [];
-          if (option.exercise) optionDetails.push(`Exercise: ${option.exercise}`);
-          if (option.reps) optionDetails.push(`Reps: ${option.reps}`);
-          
-          if (optionDetails.length > 0) {
-            markdown += ` (${optionDetails.join(', ')})`;
-          }
-          markdown += '\n';
-        }
-        markdown += '\n';
-        markdown += '\n';
-      }
-    }
+    });
   }
-  
+
   return markdown;
 }
-
-// Export the helper functions if they need to be used elsewhere
-export { formatWarmupOrCooldown, formatWorkout };
