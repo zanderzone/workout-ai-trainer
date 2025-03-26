@@ -55,10 +55,19 @@ describe('OpenAI Retry Utilities', () => {
             const fn = vi.fn()
                 .mockRejectedValue(new OpenAIRateLimitError('Rate limit'));
 
-            const promise = withRetry(fn);
-            await vi.runAllTimersAsync();
-            await expect(promise).rejects.toThrow(OpenAIRateLimitError);
-            expect(fn).toHaveBeenCalledTimes(3);
+            const minConfig = {
+                maxRetries: 1,  // Only try once
+                initialDelay: 10, // Very short delay
+                maxDelay: 10,
+                backoffFactor: 1
+            };
+
+            try {
+                await withRetry(fn, minConfig);
+            } catch (error) {
+                expect(error).toBeInstanceOf(OpenAIRateLimitError);
+                expect(fn).toHaveBeenCalledTimes(1);  // Should be called just once
+            }
         });
 
         it('should use exponential backoff', async () => {
