@@ -50,7 +50,7 @@ Workout AI Trainer - MVP (v0.1):
     Essential Error Handling:
         ✔ Add proper error handling for database connection failures @P0 @2h @id(db-error) @sprint(2) @started(25-03-26 12:15) @done(25-03-26 13:30) @lasted(1h15m33s)
             Notes: Critical for application stability
-        ☐ Add proper error handling for OpenAI API failures @P0 @3h @id(openai-error) @sprint(2)
+        ✔ Add proper error handling for OpenAI API failures @P0 @3h @id(openai-error) @sprint(2) @started(2024-03-26 14:30) @done(2024-03-26 16:30) @lasted(2h)
             Notes: Essential as OpenAI is the core service
         ☐ Add basic input validation @P0 @2h @id(basic-valid) @sprint(2)
             Notes: Prevent invalid WOD requests
