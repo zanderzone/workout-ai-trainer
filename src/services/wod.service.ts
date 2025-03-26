@@ -8,6 +8,10 @@ import { UserProfile } from "../types/userProfile.types";
 import { validateSystemPrompt, validateUserPrompt } from "../prompts/prompt-utils";
 import { generateSystemPrompt } from "../prompts/system-prompt";
 import { generateUserPrompt } from "../prompts/user-prompt";
+import { Collection } from "mongodb";
+import { WodType, wodValidationSchema } from "../types/wod.types";
+import { BaseService } from "./base.service";
+import { DatabaseError } from "../utils/error-handling";
 
 dotenv.config();
 
@@ -90,5 +94,45 @@ export function getWodGenerator(
             return new OpenAIWorkoutAdapter(uuidGenerator);
         default:
             throw new Error(`Unknown AI provider: ${provider}`);
+    }
+}
+
+export class WodService extends BaseService<WodType> {
+    constructor(collection: Collection<WodType>) {
+        super(collection);
+    }
+
+    async saveWod(wod: Omit<WodType, '_id' | 'createdAt' | 'updatedAt'>, userId: string): Promise<WodType> {
+        try {
+            const wodWithMetadata: WodType = {
+                ...wod,
+                wodId: generateUuid(),
+                userId,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            };
+
+            return await this.createWithValidation(wodWithMetadata, wodValidationSchema);
+        } catch (error) {
+            if (error instanceof DatabaseError) throw error;
+            throw new DatabaseError("Failed to save WOD", error);
+        }
+    }
+
+    async getWod(wodId: string): Promise<WodType | null> {
+        return this.findOne({ wodId });
+    }
+
+    async getUserWods(userId: string): Promise<WodType[]> {
+        return this.find({ userId });
+    }
+
+    async updateWod(wodId: string, wod: Partial<Omit<WodType, '_id' | 'createdAt' | 'updatedAt'>>): Promise<WodType | null> {
+        const updateData = {
+            ...wod,
+            updatedAt: new Date()
+        };
+
+        return this.updateWithValidation({ wodId }, updateData, wodValidationSchema);
     }
 }
