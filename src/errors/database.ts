@@ -16,7 +16,7 @@ export class DatabaseConnectionError extends AppError {
 
 export class DatabaseOperationError extends DatabaseError {
     constructor(message: string, public readonly originalError?: any) {
-        super(message, originalError);
+        super(message, 500, originalError);
         this.name = 'DatabaseOperationError';
     }
 }
