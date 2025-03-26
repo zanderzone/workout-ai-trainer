@@ -4,6 +4,7 @@ import { UserProfile } from "../src/types/userProfile.types";
 import { formatWodToMarkdown } from "../src/utils/markdown";
 import { v4 as uuidv4 } from 'uuid';
 import dotenv from 'dotenv';
+import { formatOpenAIErrorResponse } from "../src/errors";
 dotenv.config();
 
 console.log('OPENAI_API_KEY is', process.env.OPENAI_API_KEY ? 'set' : 'not set');
@@ -64,7 +65,13 @@ async function testGenerateWod() {
         console.log("\nRaw WOD JSON:");
         console.log(JSON.stringify(result, null, 2));
     } catch (error) {
-        console.error("Error generating WOD:", error);
+        const formattedError = formatOpenAIErrorResponse(error);
+        console.error("Error generating WOD:");
+        console.error(`Status: ${formattedError.status}`);
+        console.error(`Message: ${formattedError.message}`);
+        if (formattedError.error) {
+            console.error("Details:", formattedError.error);
+        }
     }
 }
 
