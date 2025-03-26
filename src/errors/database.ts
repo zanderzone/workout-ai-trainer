@@ -2,21 +2,21 @@ import { AppError } from './base';
 
 export class DatabaseError extends AppError {
     constructor(message: string, details?: any) {
-        super(message, 500, details);
+        super(message, { statusCode: 500, ...details });
         this.name = 'DatabaseError';
     }
 }
 
 export class DatabaseConnectionError extends AppError {
     constructor(message: string, details?: any) {
-        super(message, 503, details);
+        super(message, { statusCode: 503, ...details });
         this.name = 'DatabaseConnectionError';
     }
 }
 
 export class DatabaseOperationError extends DatabaseError {
     constructor(message: string, public readonly originalError?: any) {
-        super(message, 500, originalError);
+        super(message, { originalError });
         this.name = 'DatabaseOperationError';
     }
 }
