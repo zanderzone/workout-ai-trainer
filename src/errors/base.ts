@@ -45,4 +45,11 @@ export class ForbiddenError extends HttpError {
         super(message, 403);
         this.name = 'ForbiddenError';
     }
+}
+
+export class NotFoundError extends HttpError {
+    constructor(message: string) {
+        super(message, 404);
+        this.name = 'NotFoundError';
+    }
 } 

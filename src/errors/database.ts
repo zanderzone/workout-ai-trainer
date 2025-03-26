@@ -1,17 +1,16 @@
 import { AppError } from './base';
 
 export class DatabaseError extends AppError {
-    constructor(message: string, public readonly originalError?: any) {
-        super(message, 500);
+    constructor(message: string, details?: any) {
+        super(message, 500, details);
         this.name = 'DatabaseError';
     }
 }
 
-export class DatabaseConnectionError extends DatabaseError {
-    constructor(message: string = 'Database connection failed', originalError?: any) {
-        super(message, originalError);
+export class DatabaseConnectionError extends AppError {
+    constructor(message: string, details?: any) {
+        super(message, 503, details);
         this.name = 'DatabaseConnectionError';
-        this.statusCode = 503;
     }
 }
 
@@ -45,7 +44,7 @@ export function formatDatabaseErrorResponse(error: unknown): {
         return {
             status: 503,
             message: 'Database service is temporarily unavailable',
-            error: error.originalError
+            error: error.details
         };
     }
 
@@ -61,7 +60,7 @@ export function formatDatabaseErrorResponse(error: unknown): {
         return {
             status: 500,
             message: error.message,
-            error: error.originalError
+            error: error.details
         };
     }
 
@@ -70,4 +69,9 @@ export function formatDatabaseErrorResponse(error: unknown): {
         message: 'An unexpected database error occurred',
         error: error
     };
+}
+
+export function logDatabaseError(error: unknown, context: string): void {
+    console.error(`Database Error in ${context}:`, error);
+    // Add additional logging logic here if needed
 } 
