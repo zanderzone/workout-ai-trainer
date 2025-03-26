@@ -22,6 +22,7 @@ const userProfile: UserProfile = {
 };
 
 const workoutOptions: WorkoutOptions = {
+    userId,
     totalAvailableTime: "60 minutes",
     userDescription: "For today's WOD, I'd like to focus on a workout that helps me improve my ability to complete a WOD with intensity and strength. Please make it fun and challenging",
     workoutDuration: "8 minutes <= duration <= 12 minutes",
