@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export interface WorkoutOptions {
+    userId: string; // Required field for database operations
     userDescription?: string; // e.g., "I want to improve my strength and conditioning"
     scaling?: string; // e.g., "lighter weight or bodyweight exercises"
     includeScalingOptions?: boolean;
@@ -24,9 +25,12 @@ export interface WorkoutOptions {
     includeExcercises?: string[]; // e.g., ["push ups", "pull ups", "squats"]
     excludeExcercises?: string[]; // e.g., ["deadlifts", "bench press"]
     wodRequestTime?: string; // e.g., "11:15 PM"
+    createdAt?: Date;
+    updatedAt?: Date;
 }
 
 export const WorkoutOptionsSchema = z.object({
+    userId: z.string(),
     scaling: z.string(),
     includeScalingOptions: z.boolean(),
     workoutPlanDuration: z.string(),
@@ -38,5 +42,7 @@ export const WorkoutOptionsSchema = z.object({
     includeCooldown: z.boolean(),
     includeRestDays: z.boolean(),
     includeBenchmarkWorkouts: z.boolean(),
-    periodization: z.string().optional()
+    periodization: z.string().optional(),
+    createdAt: z.date().optional(),
+    updatedAt: z.date().optional()
 });
