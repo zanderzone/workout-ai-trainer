@@ -38,7 +38,7 @@ const workoutOptions: WorkoutOptions = {
     availableEquipment: [
         "45 lb olympic barbell", "35 lb olympic barbell", "15-45 lb Dumbbell pairs", "Bumper Plates weight > 300 lbs",
         "53 lb kettlebells", "32 lb kettlebells", "jump ropes", "18 inch plyometric box", "24 inch Plyometric box", "32 inch Plyometric box",
-        "pull up bar", "squat rack", "Assault Fitness Assault Bike", "Dip stagion", "ab mats",
+        "pull up bar", "squat rack", "Assault Fitness Assault Bike", "Dip station", "ab mats",
         "Assault Fitness Treadmill", "Concept 2 Rower"
     ],
     weather: "current Woodland, CA weather",
