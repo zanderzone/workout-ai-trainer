@@ -88,7 +88,7 @@ const scenarios = {
                 weather: "current Woodland, CA weather",
                 location: "garage home gym",
                 indoorAndOutdoorWorkout: false,
-                includeExcercises: [],
+                includeExercises: [],
                 excludeExcercises: []
             } as WorkoutOptions
         }
@@ -104,7 +104,7 @@ const scenarios = {
             } as UserProfile,
             workoutOptions: {
                 totalAvailableTime: "45 minutes",
-                includeExcercises: ["deadlifts", "squats", "rowing"],
+                includeExercises: ["deadlifts", "squats", "rowing"],
                 excludeExcercises: ["pull-ups", "push-ups"],
                 availableEquipment: ["barbell", "plates", "rowing machine"]
             } as WorkoutOptions

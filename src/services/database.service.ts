@@ -1,304 +1,332 @@
 import { Application } from "express";
-import { MongoClient, Db, Collection, ObjectId, WithId } from "mongodb";
-import { workoutResultSchema, WorkoutPlanDB, workoutPlanDBSchema, WorkoutResult } from "../types/workout.types";
+import { MongoClient, Db, Collection, ObjectId, MongoClientOptions, Document } from "mongodb";
+// import { workoutResultSchema, WorkoutPlanDB, workoutPlanDBSchema, WorkoutResult } from "../types/workout.types";
 import { wodValidationSchema, WodType, wodMongoSchema } from "../types/wod.types";
 import { User } from "../types/user.types";
 import { UserProfile, userProfileSchema, userProfileMongoSchema } from "../types/userProfile.types";
 import { WorkoutOptions, WorkoutOptionsSchema } from "../types/workoutOptions.types";
-import { generateUuid } from "../utils/uuid";
+import { DatabaseConnectionError, logDatabaseError } from "../utils/error-handling";
+import { UserProfileService } from "./userProfile.service";
+import { WorkoutOptionsService } from "./workoutOptions.service";
+import { WodService } from "./wod.service";
+// import { WorkoutService } from "./workout.service";
 import dotenv from "dotenv";
 
 dotenv.config();
 
 const MONGO_URI: string = process.env.MONGO_URI || "mongodb://localhost:27017/workouts_ai_trainer";
 
-// MongoDB client instance
-let mongoClient: MongoClient;
+// Service instances
+let userProfileService: UserProfileService;
+let workoutOptionsService: WorkoutOptionsService;
+let wodService: WodService;
+// let workoutService: WorkoutService;
 
-// Collection references with proper typing
-let wodCollection: Collection<WodType>;
-let workoutCollection: Collection<WorkoutPlanDB>;
-let userCollection: Collection<User>;
-let userProfileCollection: Collection<UserProfile>;
-let workoutOptionsCollection: Collection<WorkoutOptions>;
-let workoutResultsCollection: Collection<WorkoutResult>;
+// Database connection manager
+export class DatabaseManager {
+  private static instance: DatabaseManager;
+  private static client: MongoClient | null = null;
+  private static database: Db | null = null;
+  private static readonly uri: string = MONGO_URI;
+  private static readonly options: MongoClientOptions = {
+    maxPoolSize: 50,
+    minPoolSize: 10,
+    socketTimeoutMS: 30000,
+    connectTimeoutMS: 30000,
+    serverSelectionTimeoutMS: 5000,
+    heartbeatFrequencyMS: 10000,
+  };
 
-// Custom error class for database operations
-class DatabaseError extends Error {
-  constructor(message: string, public originalError?: any) {
-    super(message);
-    this.name = 'DatabaseError';
+  private constructor() { }
+
+  static getInstance(): DatabaseManager {
+    if (!DatabaseManager.instance) {
+      DatabaseManager.instance = new DatabaseManager();
+    }
+    return DatabaseManager.instance;
+  }
+
+  private static setupConnectionMonitoring(): void {
+    if (!this.client) return;
+
+    this.client.on('close', () => {
+      logDatabaseError(new DatabaseConnectionError('MongoDB connection closed'), 'connection');
+    });
+
+    this.client.on('error', (error: Error) => {
+      logDatabaseError(error, 'connection');
+    });
+  }
+
+  private static async connectWithRetry(): Promise<void> {
+    const MAX_RETRIES = 5;
+    const INITIAL_RETRY_DELAY = 1000; // 1 second
+    let retryCount = 0;
+
+    while (retryCount < MAX_RETRIES) {
+      try {
+        if (!this.client) {
+          throw new Error('MongoClient not initialized');
+        }
+
+        await Promise.race([
+          this.client.connect(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Connection timeout')), 10000)
+          )
+        ]);
+        return; // Success, exit the retry loop
+      } catch (error: unknown) {
+        retryCount++;
+
+        // Check if we should retry this error
+        if (!this.shouldRetryConnection(error)) {
+          throw error; // Don't retry if it's not a retryable error
+        }
+
+        if (retryCount === MAX_RETRIES) {
+          throw new DatabaseConnectionError(
+            `Failed to connect to MongoDB after ${MAX_RETRIES} attempts`,
+            error
+          );
+        }
+
+        // Calculate delay with exponential backoff
+        const delay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount - 1);
+        console.log(`Connection attempt ${retryCount} failed. Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  private static shouldRetryConnection(error: unknown): boolean {
+    if (!error) return false;
+
+    // Network-related errors
+    const networkErrors = [
+      'ECONNREFUSED',
+      'ECONNRESET',
+      'ETIMEDOUT',
+      'ENOTFOUND',
+      'Connection timeout',
+      'Network unreachable'
+    ];
+
+    // MongoDB-specific transient errors
+    const mongoTransientErrors = [
+      'Topology was destroyed',
+      'Server selection timed out',
+      'Connection pool exhausted',
+      'Authentication failed'
+    ];
+
+    const errorMessage = error instanceof Error ? error.message.toLowerCase() : '';
+    const errorCode = (error as any).code || '';
+
+    return (
+      networkErrors.some(err =>
+        errorMessage.includes(err.toLowerCase()) ||
+        errorCode.includes(err)
+      ) ||
+      mongoTransientErrors.some(err =>
+        errorMessage.includes(err.toLowerCase())
+      ) ||
+      // Check for MongoDB specific error codes
+      ((error as any).name === 'MongoServerError' &&
+        ((error as any).code === 11600 || // InterruptedAtShutdown
+          (error as any).code === 11602 || // InterruptedDueToReplStateChange
+          (error as any).code === 13435))  // SocketException
+    );
+  }
+
+  public static async connect(): Promise<void> {
+    try {
+      if (!this.client) {
+        this.client = new MongoClient(this.uri, this.options);
+        this.setupConnectionMonitoring();
+      }
+
+      // Check if already connected by attempting a ping
+      try {
+        await this.client.db().command({ ping: 1 });
+        console.log('Already connected to MongoDB');
+        // Ensure database is set even if already connected
+        if (!this.database) {
+          this.database = this.client.db();
+        }
+        return;
+      } catch {
+        // Not connected, continue with connection
+      }
+
+      await this.connectWithRetry();
+      this.database = this.client.db();
+      console.log('Connected to MongoDB successfully');
+    } catch (error) {
+      logDatabaseError(error, 'connect');
+      throw new DatabaseConnectionError("Failed to connect to MongoDB", error);
+    }
+  }
+
+  public static async close(): Promise<void> {
+    if (this.client) {
+      try {
+        await this.client.close();
+        this.client = null;
+        this.database = null;
+      } catch (error) {
+        logDatabaseError(error, 'closeDatabaseConnection');
+        throw new DatabaseConnectionError("Failed to close MongoDB connection", error);
+      }
+    }
+  }
+
+  public static getDatabase(): Db {
+    if (!this.database) {
+      if (!this.client) {
+        throw new DatabaseConnectionError("MongoDB client not initialized");
+      }
+      this.database = this.client.db();
+    }
+    return this.database;
+  }
+
+  public static getCollection<T extends Document>(name: string): Collection<T> {
+    const db = this.getDatabase();
+    return db.collection<T>(name);
+  }
+
+  // Instance methods that delegate to static methods
+  public async connect(): Promise<void> {
+    return DatabaseManager.connect();
+  }
+
+  public async close(): Promise<void> {
+    return DatabaseManager.close();
+  }
+
+  public getDatabase(): Db {
+    return DatabaseManager.getDatabase();
+  }
+
+  public getCollection<T extends Document>(name: string): Collection<T> {
+    return DatabaseManager.getCollection<T>(name);
+  }
+
+  public static getClient(): MongoClient | null {
+    return this.client;
   }
 }
 
-export async function connectDatabases(app: Application): Promise<void> {
-  try {
-    // Create MongoDB client with connection pooling
-    mongoClient = new MongoClient(MONGO_URI, {
-      maxPoolSize: 50,
-      minPoolSize: 10,
-      socketTimeoutMS: 30000,
-      connectTimeoutMS: 30000,
-    });
-
-    // Connect to MongoDB
-    await mongoClient.connect();
-    const db = mongoClient.db();
-
-    // Initialize collections with proper typing
-    wodCollection = db.collection<WodType>("wods");
-    workoutCollection = db.collection<WorkoutPlanDB>("workouts");
-    userCollection = db.collection<User>("users");
-    userProfileCollection = db.collection<UserProfile>("user_profiles");
-    workoutOptionsCollection = db.collection<WorkoutOptions>("workout_options");
-    workoutResultsCollection = db.collection<WorkoutResult>("workout_results");
-
-    // Add collections to app.locals for global access
-    app.locals.wodCollection = wodCollection;
-    app.locals.workoutCollection = workoutCollection;
-    app.locals.userCollection = userCollection;
-    app.locals.userProfileCollection = userProfileCollection;
-    app.locals.workoutOptionsCollection = workoutOptionsCollection;
-    app.locals.workoutResultsCollection = workoutResultsCollection;
-
-    // Add collections to global for passport strategies
-    (global as any).wodCollection = wodCollection;
-    (global as any).workoutCollection = workoutCollection;
-    (global as any).userCollection = userCollection;
-    (global as any).userProfileCollection = userProfileCollection;
-    (global as any).workoutOptionsCollection = workoutOptionsCollection;
-    (global as any).workoutResultsCollection = workoutResultsCollection;
-
-    // Create indexes with error handling
+// Collection initializer
+class CollectionInitializer {
+  static async initializeCollections(db: Db, app: Application): Promise<void> {
     try {
+      // Initialize collections with proper typing
+      const wodCollection = db.collection<WodType>("wods");
+      // const workoutCollection = db.collection<WorkoutPlanDB>("workouts");
+      const userCollection = db.collection<User>("users");
+      const userProfileCollection = db.collection<UserProfile>("user_profiles");
+      const workoutOptionsCollection = db.collection<WorkoutOptions>("workout_options");
+      // const workoutResultsCollection = db.collection<WorkoutResult>("workout_results");
+
+      // Initialize services
+      userProfileService = new UserProfileService(userProfileCollection);
+      workoutOptionsService = new WorkoutOptionsService(workoutOptionsCollection);
+      wodService = new WodService(wodCollection);
+      // workoutService = new WorkoutService(workoutCollection);
+
+      // Add to app.locals
+      app.locals.userProfileService = userProfileService;
+      app.locals.workoutOptionsService = workoutOptionsService;
+      app.locals.wodService = wodService;
+      // app.locals.workoutService = workoutService;
+
+      // Add to global for passport strategies
+      (global as any).userProfileService = userProfileService;
+      (global as any).workoutOptionsService = workoutOptionsService;
+      (global as any).wodService = wodService;
+      // (global as any).workoutService = workoutService;
+
+      // Create indexes
+      await this.createIndexes(db);
+    } catch (error) {
+      logDatabaseError(error, 'initializeCollections');
+      throw error;
+    }
+  }
+
+  private static async createIndexes(db: Db): Promise<void> {
+    try {
+      // Create indexes with background option to avoid blocking operations
       await Promise.all([
-        userCollection.createIndex({ providerId: 1 }, { unique: true }),
-        userCollection.createIndex({ email: 1 }),
-        userProfileCollection.createIndex({ userId: 1 }, { unique: true }),
-        workoutOptionsCollection.createIndex({ userId: 1 }, { unique: true }),
-        workoutResultsCollection.createIndex({ user_id: 1, date: -1 })
+        // User indexes
+        db.collection("users").createIndex(
+          { providerId: 1 },
+          { unique: true, name: "users_providerId_unique", background: true }
+        ),
+        db.collection("users").createIndex(
+          { email: 1 },
+          { unique: true, name: "users_email_unique", background: true }
+        ),
+
+        // User profile indexes
+        db.collection("user_profiles").createIndex(
+          { userId: 1 },
+          { unique: true, name: "user_profiles_userId_unique", background: true }
+        ),
+
+        // Workout options indexes
+        db.collection("workout_options").createIndex(
+          { userId: 1 },
+          { unique: true, name: "workout_options_userId_unique", background: true }
+        ),
+
+        // WOD indexes
+        db.collection("wods").createIndex(
+          { wodId: 1 },
+          { unique: true, name: "wods_wodId_unique", background: true }
+        ),
+        db.collection("wods").createIndex(
+          { userId: 1, createdAt: -1 },
+          { name: "wods_userId_createdAt", background: true }
+        )
+        // Workout results indexes - disabled
+        // db.collection("workout_results").createIndex(
+        //   { user_id: 1, date: -1 },
+        //   { name: "workout_results_userId_date", background: true }
+        // )
       ]);
     } catch (error) {
-      console.error("Error creating indexes:", error);
-      // Don't throw here, as indexes can be created later
+      // Log the error but don't throw - MongoDB will handle duplicate index creation gracefully
+      if (error instanceof Error && error.message.includes('already exists')) {
+        console.log('Some indexes already exist, continuing...');
+      } else {
+        logDatabaseError(error, 'createIndexes');
+      }
     }
+  }
+}
 
-    console.log("Connected to MongoDB successfully");
+// Export other functions
+export async function connectDatabases(app: Application): Promise<void> {
+  try {
+    await DatabaseManager.connect();
+    const db = DatabaseManager.getDatabase();
+    await CollectionInitializer.initializeCollections(db, app);
   } catch (error) {
-    console.error("MongoDB connection error:", error);
-    throw new DatabaseError("Failed to connect to MongoDB", error);
+    logDatabaseError(error, 'startServer');
+    throw error;
   }
 }
 
-// Add a function to get the MongoDB client
-export function getMongoClient(): MongoClient {
-  if (!mongoClient) {
-    throw new DatabaseError("MongoDB client not initialized");
-  }
-  return mongoClient;
-}
-
-// Add a function to close the MongoDB connection
 export async function closeDatabaseConnection(): Promise<void> {
-  if (mongoClient) {
-    await mongoClient.close();
-    console.log("MongoDB connection closed");
-  }
+  await DatabaseManager.close();
 }
 
-// User Profile Management with improved error handling
-export async function createUserProfile(userId: string, profile: Omit<UserProfile, 'userId' | 'createdAt' | 'updatedAt'>): Promise<UserProfile> {
-  try {
-    const validation = userProfileSchema.safeParse({
-      ...profile,
-      userId,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    });
-
-    if (!validation.success) {
-      throw new DatabaseError("Invalid user profile data", validation.error);
-    }
-
-    const result = await userProfileCollection.insertOne(validation.data);
-    if (!result.acknowledged) {
-      throw new DatabaseError("Failed to insert user profile");
-    }
-
-    return validation.data;
-  } catch (error) {
-    if (error instanceof DatabaseError) throw error;
-    throw new DatabaseError("Failed to create user profile", error);
-  }
+export function getMongoClient(): MongoClient | null {
+  return DatabaseManager.getClient();
 }
 
-export async function getUserProfile(userId: string): Promise<UserProfile | null> {
-  const result = await userProfileCollection.findOne({ userId });
-  return result as UserProfile | null;
-}
-
-export async function updateUserProfile(userId: string, profile: Partial<Omit<UserProfile, 'userId' | 'createdAt' | 'updatedAt'>>): Promise<UserProfile | null> {
-  const updateData = {
-    ...profile,
-    updatedAt: new Date()
-  };
-
-  const result = await userProfileCollection.findOneAndUpdate(
-    { userId },
-    { $set: updateData },
-    { returnDocument: 'after' }
-  );
-
-  return result.value as UserProfile | null;
-}
-
-// Workout Options Management
-export async function createWorkoutOptions(userId: string, options: Omit<WorkoutOptions, 'userId' | 'createdAt' | 'updatedAt'>): Promise<WorkoutOptions> {
-  const validation = WorkoutOptionsSchema.safeParse({
-    ...options,
-    userId,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  });
-
-  if (!validation.success) {
-    throw new Error("Invalid workout options data");
-  }
-
-  const result = await workoutOptionsCollection.insertOne(validation.data);
-  return validation.data;
-}
-
-export async function getUserWorkoutOptions(userId: string): Promise<WorkoutOptions | null> {
-  const result = await workoutOptionsCollection.findOne({ userId });
-  return result as WorkoutOptions | null;
-}
-
-export async function updateWorkoutOptions(userId: string, options: Partial<Omit<WorkoutOptions, 'userId' | 'createdAt' | 'updatedAt'>>): Promise<WorkoutOptions | null> {
-  const updateData = {
-    ...options,
-    updatedAt: new Date()
-  };
-
-  const result = await workoutOptionsCollection.findOneAndUpdate(
-    { userId },
-    { $set: updateData },
-    { returnDocument: 'after' }
-  );
-
-  return result.value as WorkoutOptions | null;
-}
-
-// Combined User Data Management
-export async function getUserCompleteData(userId: string): Promise<{
-  user: any;
-  profile: UserProfile | null;
-  workoutOptions: WorkoutOptions | null;
-}> {
-  const [user, profile, workoutOptions] = await Promise.all([
-    userCollection.findOne({ providerId: userId }),
-    getUserProfile(userId),
-    getUserWorkoutOptions(userId)
-  ]);
-
-  return { user, profile, workoutOptions };
-}
-
-export async function saveWod(wod: Omit<WodType, '_id' | 'createdAt' | 'updatedAt'>, userId: string): Promise<void> {
-  // Add metadata
-  const wodWithMetadata: WodType = {
-    ...wod,
-    wodId: generateUuid(),
-    userId,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  };
-
-  const validation = wodValidationSchema.safeParse(wodWithMetadata);
-  if (!validation.success) {
-    console.error("Validation errors:", validation.error);
-    throw new DatabaseError("Invalid WOD JSON structure", validation.error);
-  }
-
-  try {
-    await wodCollection.insertOne(wodWithMetadata);
-  } catch (error) {
-    console.error("Error saving WOD:", error);
-    throw new DatabaseError("Failed to save WOD to database", error);
-  }
-}
-
-export async function saveWorkout(workout: Omit<WorkoutPlanDB, '_id' | 'createdAt' | 'updatedAt'>, workoutId?: string): Promise<void> {
-  // Add metadata
-  const workoutWithMetadata: WorkoutPlanDB = {
-    ...workout,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  };
-
-  if (workoutId) {
-    workoutWithMetadata._id = new ObjectId(workoutId);
-  }
-
-  // Validate the workout plan against the schema
-  const validation = workoutPlanDBSchema.safeParse(workoutWithMetadata);
-
-  if (!validation.success) {
-    throw new DatabaseError("Invalid workout JSON structure", validation.error);
-  }
-
-  try {
-    if (workoutId) {
-      await workoutCollection.updateOne(
-        { _id: new ObjectId(workoutId) },
-        { $set: workoutWithMetadata }
-      );
-    } else {
-      await workoutCollection.insertOne(workoutWithMetadata);
-    }
-  } catch (error) {
-    throw new DatabaseError("Failed to save workout to database", error);
-  }
-}
-
-// Workout Results Management with improved error handling
-export async function createWorkoutResult(workoutResult: Omit<WorkoutResult, '_id' | 'createdAt' | 'updatedAt'>): Promise<WorkoutResult> {
-  try {
-    const validation = workoutResultSchema.safeParse({
-      ...workoutResult,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    });
-
-    if (!validation.success) {
-      throw new DatabaseError("Invalid workout result data", validation.error);
-    }
-
-    const result = await workoutResultsCollection.insertOne(validation.data);
-    if (!result.acknowledged) {
-      throw new DatabaseError("Failed to insert workout result");
-    }
-
-    return validation.data;
-  } catch (error) {
-    if (error instanceof DatabaseError) throw error;
-    throw new DatabaseError("Failed to create workout result", error);
-  }
-}
-
-export async function getWorkoutResults(userId: string): Promise<WorkoutResult[]> {
-  try {
-    return await workoutResultsCollection.find({ userId }).sort({ date: -1 }).toArray();
-  } catch (error) {
-    throw new DatabaseError("Failed to fetch workout results", error);
-  }
-}
-
-export async function getWorkoutResult(id: string): Promise<WorkoutResult | null> {
-  try {
-    const objectId = new ObjectId(id);
-    return await workoutResultsCollection.findOne({ _id: objectId });
-  } catch (error) {
-    throw new DatabaseError("Failed to fetch workout result", error);
-  }
-}
+// Export services
+export { userProfileService, workoutOptionsService, wodService };

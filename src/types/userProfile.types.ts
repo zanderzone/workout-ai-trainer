@@ -40,7 +40,4 @@ const userProfileMongoSchema = new Schema({
     versionKey: false
 });
 
-// Create index on userId for faster lookups
-userProfileMongoSchema.index({ userId: 1 });
-
 export { UserProfile, userProfileSchema, userProfileMongoSchema };

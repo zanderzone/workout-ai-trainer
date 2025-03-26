@@ -42,7 +42,7 @@ export interface AuthenticatedRequest extends Request {
     user?: User;
 }
 
-export const userSchema = z.object({
+const userSchema = z.object({
     _id: z.instanceof(ObjectId).optional(),
     providerId: z.string().describe('OAuth provider ID (Google/Apple)'),
     email: z.string().email(),
@@ -66,26 +66,12 @@ export const userSchema = z.object({
     updatedAt: z.date()
 });
 
-export const userMongoSchema = new Schema({
-    _id: { type: ObjectId, auto: true },
-    providerId: { type: String, required: true, unique: true, description: 'OAuth provider ID (Google/Apple)' },
+const userMongoSchema = new Schema({
+    providerId: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
-    provider: { type: String, required: true, enum: ['google', 'apple'] },
-    firstName: String,
-    lastName: String,
-    displayName: String,
-    profilePicture: String,
-    emailVerified: Boolean,
-    accountStatus: { type: String, enum: ['active', 'disabled'], default: undefined },
-    ageRange: { type: String, enum: ["18-24", "25-34", "35-44", "45-54", "55+"], default: undefined },
-    sex: { type: String, enum: ["male", "female", "other"], default: undefined },
-    fitnessLevel: { type: String, enum: ["beginner", "intermediate", "advanced"], default: undefined },
-    goals: { type: [String], default: undefined },
-    injuriesOrLimitations: { type: [String], default: undefined },
-    // Token management
-    refreshToken: { type: String, select: false }, // Not included in default queries
-    tokenExpiresAt: Date,
-    isRegistrationComplete: Boolean,
+    displayName: { type: String, required: true },
+    provider: { type: String, required: true },
+    picture: { type: String },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 }, {
@@ -93,6 +79,4 @@ export const userMongoSchema = new Schema({
     versionKey: false
 });
 
-// Create indexes
-userMongoSchema.index({ email: 1 });
-userMongoSchema.index({ providerId: 1 }); 
+export { User, userSchema, userMongoSchema }; 

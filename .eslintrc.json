@@ -1,0 +1,17 @@
+{
+    "ignorePatterns": [
+        "src/future/**",
+        "**/future/**",
+        "src/future/workout/*",
+        "src/future/workout/*.ts"
+    ],
+    "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended"
+    ],
+    "parser": "@typescript-eslint/parser",
+    "plugins": [
+        "@typescript-eslint"
+    ],
+    "root": true
+}

@@ -40,7 +40,7 @@ const workoutOptions: WorkoutOptions = {
     weather: "current Woodland, CA weather",
     location: "garage home gym, running path, home street in Woodland, CA 95776",
     indoorAndOutdoorWorkout: false,
-    includeExcercises: [],
+    includeExercises: [],
     excludeExcercises: [],
     wodRequestTime: "5:42 PM"
 };

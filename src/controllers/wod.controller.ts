@@ -34,7 +34,7 @@ const createWodRequestSchema = z.object({
         weather: z.string().optional(),
         location: z.string().optional(),
         indoorAndOutdoorWorkout: z.boolean().optional(),
-        includeExcercises: z.array(z.string()).optional(),
+        includeExercises: z.array(z.string()).optional(),
         excludeExcercises: z.array(z.string()).optional(),
         wodRequestTime: z.string().optional()
     }).optional()
@@ -64,7 +64,7 @@ const wodController = {
             const { wod } = await workoutGenerator.generateWod(
                 userId,
                 userProfile || {}, // Provide empty object if userProfile is not provided
-                workoutOptions || {} // Provide empty object if workoutOptions is not provided
+                workoutOptions ? { ...workoutOptions, userId } : { userId } // Include userId in workoutOptions
             );
 
             // Add UUID to the WOD
