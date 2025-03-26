@@ -14,7 +14,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx",
+    "jsx": "preserve",
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -24,14 +24,26 @@
       "@/*": [
         "src/*"
       ]
-    }
+    },
+    "allowJs": true,
+    "incremental": true,
+    "esModuleInterop": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
   "include": [
-    "src"
+    "src",
+    ".next/types/**/*.ts"
   ],
   "references": [
     {
       "path": "./tsconfig.node.json"
     }
+  ],
+  "exclude": [
+    "node_modules"
   ]
 }

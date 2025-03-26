@@ -33,13 +33,18 @@ Workout AI Trainer - MVP (v0.1):
       ☐ Split prompt generation into system and user prompts @P0 @4h @id(prompt-split) @sprint(1)
           Notes: Improve prompt generation modularity and maintainability
           Subtasks:
-          - Separate current prompt into:
-            * System prompt: schema, requirements, and guidelines
-            * User prompt: profile, options, and preferences
+          - Create separate prompt files:
+            * system-prompt.ts: Core coaching directives and WOD generation guidelines
+            * user-prompt.ts: User profile and workout preferences formatting
+            * prompt-utils.ts: Shared utilities for prompt generation
           - Update workout service to handle both prompts
           - Add validation for both prompt types
           - Update tests for new prompt structure
           - Add prompt versioning support
+          - Add TypeScript types for prompt structures
+          - Add documentation for prompt system
+          - Consider adding prompt templates for different WOD types
+          - Add support for prompt customization based on user experience level
     
   Sprint 2 - Core WOD Features (1 week, 25 hours):
     WOD API:
