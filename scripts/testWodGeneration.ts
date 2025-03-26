@@ -50,22 +50,18 @@ const workoutAdapter = new OpenAIWorkoutAdapter();
 
 async function testGenerateWod() {
     try {
+        console.log("Generating workout plan...");
         const result = await workoutAdapter.generateWod(userId, userProfile, workoutOptions);
 
-        // Transform the result to match the WOD interface
-        const wodFormatted = {
-            description: result.wod.description,
-            wod: result.wod.wod
-        };
-
         // Format the WOD JSON into a markdown string
-        const formattedWod = formatWodToMarkdown(wodFormatted);
+        const formattedWod = formatWodToMarkdown(result.wod);
 
         console.log("Generated WOD:");
         console.log(formattedWod);
 
-        // Uncomment this if you still want to see the raw JSON output
-        // console.log("Raw WOD JSON:", JSON.stringify(result, null, 2));
+        // Also show the raw JSON for debugging
+        console.log("\nRaw WOD JSON:");
+        console.log(JSON.stringify(result, null, 2));
     } catch (error) {
         console.error("Error generating WOD:", error);
     }
