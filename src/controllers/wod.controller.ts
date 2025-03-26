@@ -34,7 +34,7 @@ const createWodRequestSchema = z.object({
         weather: z.string().optional(),
         location: z.string().optional(),
         indoorAndOutdoorWorkout: z.boolean().optional(),
-        includeExcercises: z.array(z.string()).optional(),
+        includeExercises: z.array(z.string()).optional(),
         excludeExcercises: z.array(z.string()).optional(),
         wodRequestTime: z.string().optional()
     }).optional()

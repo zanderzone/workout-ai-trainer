@@ -22,7 +22,7 @@ export interface WorkoutOptions {
     weather?: string; // e.g., "rainy", "sunny", "cloudy"
     location?: string; // e.g., "gym", "home", "park"
     goals?: string; // e.g., "weight loss", "muscle gain", "endurance"
-    includeExcercises?: string[]; // e.g., ["push ups", "pull ups", "squats"]
+    includeExercises?: string[]; // e.g., ["push ups", "pull ups", "squats"]
     excludeExcercises?: string[]; // e.g., ["deadlifts", "bench press"]
     wodRequestTime?: string; // e.g., "11:15 PM"
     createdAt?: Date;
