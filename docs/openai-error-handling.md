@@ -91,10 +91,10 @@ try {
     if (error && typeof error === "object" && "response" in error) {
         const status = error.response?.status;
         switch (status) {
-            case 429: throw OpenAIRateLimitError
-            case 400: throw OpenAIInvalidRequestError
-            case 503: throw OpenAIServiceUnavailableError
-            default: throw OpenAIError
+            case 429: throw new OpenAIRateLimitError()
+            case 400: throw new OpenAIInvalidRequestError()
+            case 503: throw new OpenAIServiceUnavailableError()
+            default: throw new OpenAIError()
         }
     }
 
