@@ -67,6 +67,7 @@
     "@types/passport-apple": "^2.0.3",
     "@types/passport-google-oauth20": "^2.0.16",
     "@types/uuid": "^10.0.0",
+    "connect-mongo": "^5.1.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "debug": "^4.4.0",

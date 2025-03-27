@@ -1,7 +1,8 @@
 import { Collection } from "mongodb";
-import { WorkoutOptions, WorkoutOptionsSchema } from "../types/workoutOptions.types";
+import { WorkoutOptions } from "../types/workoutOptions.types";
 import { BaseService } from "./base.service";
-import { DatabaseError } from "../utils/error-handling";
+import { DatabaseError } from "../errors";
+import { WorkoutOptionsSchema } from "../types/workoutOptions.types";
 
 export class WorkoutOptionsService extends BaseService<WorkoutOptions> {
     constructor(collection: Collection<WorkoutOptions>) {

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { HttpError } from '../utils/errors';
+import { HttpError, UnauthorizedError } from '../errors/base';
 import { BaseUser } from '../types/user.types';
 import asyncHandler from 'express-async-handler';
 
@@ -31,7 +31,7 @@ const isValidProvider = (provider: string): provider is 'google' | 'apple' => {
 export const authenticateJWT = asyncHandler(async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-        throw new HttpError('No token provided', 401);
+        throw new UnauthorizedError('No token provided');
     }
 
     const token = authHeader.split(' ')[1];
@@ -40,7 +40,7 @@ export const authenticateJWT = asyncHandler(async (req: Request, res: Response, 
 
         // Validate provider
         if (!isValidProvider(decoded.provider)) {
-            throw new HttpError('Invalid provider type', 401);
+            throw new UnauthorizedError('Invalid provider type');
         }
 
         // Create a BaseUser object from the JWT payload
@@ -58,14 +58,14 @@ export const authenticateJWT = asyncHandler(async (req: Request, res: Response, 
         if (error instanceof HttpError) {
             throw error;
         }
-        throw new HttpError('Invalid or expired token', 401);
+        throw new UnauthorizedError('Invalid or expired token');
     }
 });
 
 export const requireRole = (roles: string[]) => {
     return asyncHandler(async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         if (!req.user) {
-            throw new HttpError('Authentication required', 401);
+            throw new UnauthorizedError('Authentication required');
         }
 
         // Add role-based checks here if needed
@@ -74,9 +74,9 @@ export const requireRole = (roles: string[]) => {
     });
 };
 
-export const validateSession = asyncHandler(async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    if (!req.session) {
-        throw new HttpError('Session not initialized', 401);
+export const validateSession = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.isAuthenticated()) {
+        throw new UnauthorizedError('User not authenticated');
     }
     next();
-}); 
+}; 

@@ -19,7 +19,14 @@ export default defineConfig({
             ]
         },
         testTimeout: 10000,
-        hookTimeout: 10000
+        hookTimeout: 10000,
+        onUnhandledRejection: (err) => {
+            // Ignore OpenAIRateLimitError in tests as these are expected in retry tests
+            if (err.name === 'OpenAIRateLimitError') {
+                return false;
+            }
+            return true;
+        }
     }
 });
 

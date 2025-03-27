@@ -4,6 +4,9 @@ import { UserProfile } from "../src/types/userProfile.types";
 import { formatWodToMarkdown } from "../src/utils/markdown";
 import { v4 as uuidv4 } from 'uuid';
 import dotenv from 'dotenv';
+import { formatOpenAIErrorResponse } from "../src/errors";
+import { writeFile } from 'fs/promises';
+import path from 'path';
 dotenv.config();
 
 console.log('OPENAI_API_KEY is', process.env.OPENAI_API_KEY ? 'set' : 'not set');
@@ -24,8 +27,8 @@ const userProfile: UserProfile = {
 const workoutOptions: WorkoutOptions = {
     userId,
     totalAvailableTime: "60 minutes",
-    userDescription: "For today's WOD, I'd like to focus on a workout that helps me improve my ability to complete a WOD with intensity and strength. Please make it fun and challenging",
-    workoutDuration: "8 minutes <= duration <= 12 minutes",
+    userDescription: "For today's WOD, I'd like to focus on heavy weights with a focus on athletic conditioning. Please make it fun and challenging",
+    workoutDuration: "12 minutes <= duration <= 15 minutes",
     scaling: "shorter duration, shorter distances, lighter weight or bodyweight exercises",
     includeScalingOptions: true,
     includeWarmups: true,
@@ -35,7 +38,7 @@ const workoutOptions: WorkoutOptions = {
     availableEquipment: [
         "45 lb olympic barbell", "35 lb olympic barbell", "15-45 lb Dumbbell pairs", "Bumper Plates weight > 300 lbs",
         "53 lb kettlebells", "32 lb kettlebells", "jump ropes", "18 inch plyometric box", "24 inch Plyometric box", "32 inch Plyometric box",
-        "pull up bar", "squat rack", "Assault Fitness Assault Bike",
+        "pull up bar", "squat rack", "Assault Fitness Assault Bike", "Dip station", "ab mats",
         "Assault Fitness Treadmill", "Concept 2 Rower"
     ],
     weather: "current Woodland, CA weather",
@@ -55,16 +58,27 @@ async function testGenerateWod() {
         const result = await workoutAdapter.generateWod(userId, userProfile, workoutOptions);
 
         // Format the WOD JSON into a markdown string
+        // Format the WOD JSON into a markdown string
         const formattedWod = formatWodToMarkdown(result.wod);
+
+        // Save the formatted WOD to a markdown file
+        const outputFilePath = 'generated-wod.md';
+        await writeFile(outputFilePath, formattedWod);
+        console.log(`Generated WOD saved to: ${path.resolve(outputFilePath)}`);
 
         console.log("Generated WOD:");
         console.log(formattedWod);
-
         // Also show the raw JSON for debugging
         console.log("\nRaw WOD JSON:");
         console.log(JSON.stringify(result, null, 2));
     } catch (error) {
-        console.error("Error generating WOD:", error);
+        const formattedError = formatOpenAIErrorResponse(error);
+        console.error("Error generating WOD:");
+        console.error(`Status: ${formattedError.status}`);
+        console.error(`Message: ${formattedError.message}`);
+        if (formattedError.error) {
+            console.error("Details:", formattedError.error);
+        }
     }
 }
 

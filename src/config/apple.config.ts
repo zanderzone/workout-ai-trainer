@@ -2,7 +2,10 @@ import { config } from 'dotenv';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import crypto from 'crypto';
-import { APPLE_CONFIG_MESSAGES } from '../utils/errors';
+import { APPLE_CONFIG_MESSAGES } from '../errors/messages';
+import fs from 'fs';
+import path from 'path';
+import { AppleConfigError } from '../errors/oauth';
 
 config();
 

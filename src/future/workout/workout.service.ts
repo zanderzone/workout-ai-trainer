@@ -12,7 +12,7 @@ import { ContinuationToken } from "../types/continuationToken.types";
 import { WorkoutAIAdapter } from "../types/workoutAiAdapter.types";
 import { Collection, ObjectId } from "mongodb";
 import { BaseService } from "./base.service";
-import { DatabaseError } from "../utils/error-handling";
+import { DatabaseError } from "../errors";
 import { workoutPlanDBSchema } from "../types/workout.types";
 import { v4 as uuidv4 } from 'uuid';
 

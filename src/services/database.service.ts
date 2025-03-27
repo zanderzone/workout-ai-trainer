@@ -5,7 +5,7 @@ import { wodValidationSchema, WodType, wodMongoSchema } from "../types/wod.types
 import { User } from "../types/user.types";
 import { UserProfile, userProfileSchema, userProfileMongoSchema } from "../types/userProfile.types";
 import { WorkoutOptions, WorkoutOptionsSchema } from "../types/workoutOptions.types";
-import { DatabaseConnectionError, logDatabaseError } from "../utils/error-handling";
+import { DatabaseConnectionError, logDatabaseError } from "../errors";
 import { UserProfileService } from "./userProfile.service";
 import { WorkoutOptionsService } from "./workoutOptions.service";
 import { WodService } from "./wod.service";

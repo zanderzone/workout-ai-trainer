@@ -1,22 +1,21 @@
-import { Request, Response, NextFunction } from 'express';
-import { HttpError } from '../utils/errors';
+import { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
+import { AppError } from '../errors/base';
 
-export const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction): void => {
-    console.error(err.stack);
+export const errorHandler: ErrorRequestHandler = (err: Error | AppError, req: Request, res: Response, next: NextFunction): void => {
+    console.error('Error:', err);
 
-    // Handle custom HTTP errors
-    if (err instanceof HttpError) {
+    if (err instanceof AppError) {
         res.status(err.statusCode).json({
-            error: err.name,
+            status: err.statusCode,
             message: err.message,
             ...(err.details && { details: err.details })
         });
         return;
     }
 
-    // Handle unknown errors
+    // Default error response for unhandled errors
     res.status(500).json({
-        error: "Internal Server Error",
-        message: process.env.NODE_ENV === 'development' ? err.message : undefined
+        status: 500,
+        message: 'Internal Server Error'
     });
 }; 
