@@ -8,6 +8,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { WodService } from "../services/wod.service";
 import { formatOpenAIErrorResponse } from "../errors/openai";
 import { handleOpenAIError } from "../errors/openai";
+import { enhancedWorkoutOptionsSchema, enhancedWodValidationSchema } from "../validation/workout.validation";
+import { AiWodSchema } from "../types/wod.types";
 
 // Request validation schema based on testWodGeneration.ts parameters
 const createWodRequestSchema = z.object({
@@ -22,25 +24,7 @@ const createWodRequestSchema = z.object({
         preferredWorkoutDays: z.array(z.string()).optional(),
         equipmentAvailable: z.array(z.string()).optional()
     }).optional(),
-    workoutOptions: z.object({
-        totalAvailableTime: z.string().optional(),
-        userDescription: z.string().optional(),
-        workoutDuration: z.string().optional(),
-        scaling: z.string().optional(),
-        includeScalingOptions: z.boolean().optional(),
-        includeWarmups: z.boolean().optional(),
-        includeAlternateMovements: z.boolean().optional(),
-        includeCooldown: z.boolean().optional(),
-        includeRestDays: z.boolean().optional(),
-        includeBenchmarkWorkouts: z.boolean().optional(),
-        availableEquipment: z.array(z.string()).optional(),
-        weather: z.string().optional(),
-        location: z.string().optional(),
-        indoorAndOutdoorWorkout: z.boolean().optional(),
-        includeExercises: z.array(z.string()).optional(),
-        excludeExcercises: z.array(z.string()).optional(),
-        wodRequestTime: z.string().optional()
-    }).optional()
+    workoutOptions: enhancedWorkoutOptionsSchema.optional()
 });
 
 interface OpenAIError {
@@ -64,25 +48,38 @@ const wodController = {
 
             // Generate and save WOD
             const workoutGenerator = getWodGenerator();
-            const { wod } = await workoutGenerator.generateWod(
+            const response = await workoutGenerator.generateWod(
                 userId,
                 userProfile || {}, // Provide empty object if userProfile is not provided
-                workoutOptions ? { ...workoutOptions, userId } : { userId } // Include userId in workoutOptions
+                workoutOptions ? { userId, ...workoutOptions } : { userId } // Include userId in workoutOptions
             );
 
-            // Add UUID to the WOD
-            const wodWithId = {
-                ...wod,
-                wodId: uuidv4()
+            // Add required fields before validation
+            const wodWithMetadata = {
+                ...response.wod.wod,
+                wodId: uuidv4(),
+                userId,
+                description: response.wod.description,
+                createdAt: new Date(),
+                updatedAt: new Date()
             };
 
-            const result = await wodCollection.insertOne(wodWithId);
+            // Validate generated WOD against enhanced schema
+            const validatedWod = enhancedWodValidationSchema.parse(wodWithMetadata);
+
+            // Convert string _id to ObjectId if present
+            const documentToInsert = {
+                ...validatedWod,
+                _id: validatedWod._id ? new ObjectId(validatedWod._id) : undefined
+            };
+
+            const result = await wodCollection.insertOne(documentToInsert);
 
             if (!result.acknowledged) {
                 throw new Error('Failed to save WOD to database');
             }
 
-            res.status(201).json(wodWithId);
+            res.status(201).json(validatedWod);
 
         } catch (error) {
             console.error("Error in createWod:", error);
@@ -137,9 +134,23 @@ const wodController = {
                 return;
             }
 
-            res.status(200).json(wod);
+            // Validate retrieved WOD against enhanced schema
+            const validatedWod = enhancedWodValidationSchema.parse(wod);
+            res.status(200).json(validatedWod);
         } catch (error) {
             console.error("Error fetching WOD:", error);
+
+            if (error instanceof z.ZodError) {
+                res.status(500).json({
+                    error: 'Invalid WOD data in database',
+                    details: error.errors.map(err => ({
+                        path: err.path.join('.'),
+                        message: err.message
+                    }))
+                });
+                return;
+            }
+
             res.status(500).json({ error: 'Failed to fetch WOD' });
         }
     }

@@ -15,30 +15,28 @@ import { DatabaseError, handleDatabaseError } from "../errors";
 import { handleOpenAIError, OpenAIResponseError, OpenAIInvalidRequestError } from "../errors";
 import { withRetry } from "../utils/openai-retry";
 import { OpenAIRateLimiter } from "../utils/openai-retry";
+import { enhancedWodValidationSchema } from "../validation/workout.validation";
 
 dotenv.config();
-
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 
 export class OpenAIWorkoutAdapter implements WodAIAdapter {
     private openai: OpenAI;
     private uuidGenerator: () => string;
     private rateLimiter: OpenAIRateLimiter;
 
-    constructor(uuidGenerator: () => string = generateUuid) {
-        if (!OPENAI_API_KEY) {
-            throw new Error("OpenAI API key is not configured");
-        }
-        this.openai = new OpenAI({ apiKey: OPENAI_API_KEY });
-        this.uuidGenerator = uuidGenerator;
-        this.rateLimiter = new OpenAIRateLimiter(60); // 60 requests per minute
+    constructor() {
+        this.openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY
+        });
+        this.uuidGenerator = generateUuid;
+        this.rateLimiter = new OpenAIRateLimiter();
     }
 
     async generateWod(
         userId: string,
         userProfile: UserProfile,
         workoutOpts?: WorkoutOptions | null,
-    ): Promise<{ wod: Wod }> {
+    ): Promise<{ wod: AiWodSchema }> {
         console.log("Generating WOD...");
         let wodId = this.uuidGenerator();
 
@@ -81,7 +79,7 @@ export class OpenAIWorkoutAdapter implements WodAIAdapter {
                 throw new OpenAIResponseError("Failed to parse OpenAI response", parseError);
             }
 
-            // Validate the generated WOD against our schema
+            // Validate the generated WOD against our enhanced schema
             const validationResult = aiWodResponseSchema.safeParse(generatedWod);
             if (!validationResult.success) {
                 throw new OpenAIResponseError(
@@ -90,16 +88,8 @@ export class OpenAIWorkoutAdapter implements WodAIAdapter {
                 );
             }
 
-            // Add MongoDB required fields
-            const wod: Wod = {
-                ...generatedWod,
-                _id: wodId,
-                userId: userId,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-            };
-
-            return { wod };
+            // Return the validated WOD with the correct structure
+            return { wod: validationResult.data };
         } catch (error) {
             console.error("Error generating WOD:", error);
             handleOpenAIError(error);
@@ -113,7 +103,7 @@ export function getWodGenerator(
 ): WodAIAdapter {
     switch (provider) {
         case "openai":
-            return new OpenAIWorkoutAdapter(uuidGenerator);
+            return new OpenAIWorkoutAdapter();
         default:
             throw new Error(`Unknown AI provider: ${provider}`);
     }
@@ -124,17 +114,30 @@ export class WodService extends BaseService<WodType> {
         super(collection);
     }
 
-    async saveWod(wod: Omit<WodType, '_id' | 'createdAt' | 'updatedAt'>, userId: string): Promise<WodType> {
+    async saveWod(wod: AiWodSchema, userId: string): Promise<WodType> {
         try {
             const wodWithMetadata: WodType = {
-                ...wod,
+                ...wod.wod,
                 wodId: generateUuid(),
                 userId,
+                description: wod.description,
+                warmup: wod.wod.warmup || {
+                    type: "General Warmup",
+                    duration: "10 minutes",
+                    activities: []
+                },
+                cooldown: wod.wod.cooldown || {
+                    type: "General Cooldown",
+                    duration: "10 minutes",
+                    activities: []
+                },
                 createdAt: new Date(),
                 updatedAt: new Date()
             };
 
-            return await this.createWithValidation(wodWithMetadata, wodValidationSchema);
+            // Validate against enhanced schema before saving
+            const validatedWod = enhancedWodValidationSchema.parse(wodWithMetadata);
+            return await this.createWithValidation(validatedWod, wodValidationSchema);
         } catch (error) {
             if (error instanceof DatabaseError) throw error;
             throw new DatabaseError("Failed to save WOD", error);
@@ -142,19 +145,29 @@ export class WodService extends BaseService<WodType> {
     }
 
     async getWod(wodId: string): Promise<WodType | null> {
-        return this.findOne({ wodId });
+        const wod = await this.findOne({ wodId });
+        if (wod) {
+            // Validate against enhanced schema before returning
+            const validatedWod = enhancedWodValidationSchema.parse(wod);
+            return validatedWod;
+        }
+        return null;
     }
 
     async getUserWods(userId: string): Promise<WodType[]> {
-        return this.find({ userId });
+        const wods = await this.find({ userId });
+        // Validate each WOD against enhanced schema
+        return wods.map(wod => enhancedWodValidationSchema.parse(wod));
     }
 
-    async updateWod(wodId: string, wod: Partial<Omit<WodType, '_id' | 'createdAt' | 'updatedAt'>>): Promise<WodType | null> {
+    async updateWod(wodId: string, wod: Partial<WodType>): Promise<WodType | null> {
         const updateData = {
             ...wod,
             updatedAt: new Date()
         };
 
-        return this.updateWithValidation({ wodId }, updateData, wodValidationSchema);
+        // Validate against enhanced schema before updating
+        const validatedWod = enhancedWodValidationSchema.partial().parse(updateData);
+        return this.updateWithValidation({ wodId }, validatedWod, wodValidationSchema);
     }
 }
