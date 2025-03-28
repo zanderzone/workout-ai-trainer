@@ -35,7 +35,7 @@ app.use(cors({
 }));
 
 // Parse cookies with appropriate settings
-app.use(cookieParser());
+app.use(cookieParser(process.env.COOKIE_SECRET || 'your-cookie-secret'));
 
 // Add security headers
 app.use((req, res, next) => {
@@ -61,9 +61,17 @@ app.use(session({
     secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
     httpOnly: true, // Prevent JavaScript access to the cookie
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'lax' // Protect against CSRF
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Allow cross-site cookies in production
+    domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined // Set domain in production
   }
 }));
+
+// Add cookie security headers
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  res.set('Pragma', 'no-cache');
+  next();
+});
 
 // Initialize passport
 app.use(passport.initialize());

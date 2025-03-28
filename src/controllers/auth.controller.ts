@@ -177,44 +177,35 @@ export const authController = {
 
     // Apple Sign In methods
     appleAuth: (req: Request, res: Response) => {
-        try {
-            // Generate a secure state parameter
-            const state = generateState();
-            console.log('Generated Apple OAuth state:', state);
+        const state = generateState();
+        const scope = appleConfig.scope.join(' ');
 
-            // Store state in cookie with cross-domain support
-            res.cookie('apple_oauth_state', state, {
-                httpOnly: true,
-                secure: true, // Always use secure for OAuth
-                sameSite: 'none', // Required for cross-domain
-                domain: process.env.NODE_ENV === 'production' ? '.ngrok.app' : undefined,
-                maxAge: 5 * 60 * 1000 // 5 minutes
-            });
+        const authUrl = new URL('https://appleid.apple.com/auth/authorize');
+        authUrl.searchParams.append('response_type', 'code');
+        authUrl.searchParams.append('client_id', appleConfig.servicesId);
+        authUrl.searchParams.append('redirect_uri', appleConfig.callbackUrl);
+        authUrl.searchParams.append('state', state);
+        authUrl.searchParams.append('scope', scope);
+        authUrl.searchParams.append('response_mode', 'form_post');
 
-            console.log('Set apple_oauth_state cookie with cross-domain support');
+        console.log('Apple OAuth Request URL:', authUrl.toString());
+        console.log('Apple OAuth Parameters:', {
+            clientId: appleConfig.servicesId ? 'present' : 'missing',
+            callbackUrl: appleConfig.callbackUrl,
+            scope,
+            state
+        });
 
-            const scope = appleConfig.scope.join(' ');
+        // Set a cookie to verify the state parameter with secure settings
+        res.cookie('apple_oauth_state', state, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            maxAge: 5 * 60 * 1000, // 5 minutes
+            domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined
+        });
 
-            const authUrl = new URL('https://appleid.apple.com/auth/authorize');
-            authUrl.searchParams.append('response_type', 'code');
-            authUrl.searchParams.append('response_mode', 'form_post');
-            authUrl.searchParams.append('client_id', appleConfig.servicesId);
-            authUrl.searchParams.append('redirect_uri', appleConfig.callbackUrl);
-            authUrl.searchParams.append('state', state);
-            authUrl.searchParams.append('scope', scope);
-
-            console.log('Apple OAuth URL parameters:', {
-                clientId: appleConfig.servicesId ? 'present' : 'missing',
-                callbackUrl: appleConfig.callbackUrl,
-                scope,
-                state
-            });
-
-            res.redirect(authUrl.toString());
-        } catch (error) {
-            console.error('Error in appleAuth:', error);
-            res.status(500).json({ message: 'Internal server error during Apple auth' });
-        }
+        res.redirect(authUrl.toString());
     },
 
     appleCallback: async (req: Request, res: Response) => {
@@ -344,8 +335,13 @@ export const authController = {
             console.log('Generating JWT token');
             const token = generateToken(user);
 
-            // Clear the state cookie
-            res.clearCookie('apple_oauth_state');
+            // Clear the state cookie with secure settings
+            res.clearCookie('apple_oauth_state', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined
+            });
 
             // Redirect to frontend with token
             const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';

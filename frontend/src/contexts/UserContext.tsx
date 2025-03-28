@@ -20,6 +20,8 @@ interface UserContextType {
   user: User | null;
   loading: boolean;
   updateUser: (data: Partial<User>) => void;
+  checkSession: () => Promise<boolean>;
+  logout: () => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -28,41 +30,67 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const checkSession = async () => {
+    try {
+      const response = await fetch('/api/auth/session');
+      if (!response.ok) {
+        setUser(null);
+        return false;
+      }
+      const data = await response.json();
+      if (!data.user) {
+        setUser(null);
+        return false;
+      }
+      setUser(data.user);
+      return true;
+    } catch (error) {
+      console.error('Error checking session:', error);
+      setUser(null);
+      return false;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (error) {
+      console.error('Error logging out:', error);
+    } finally {
+      setUser(null);
+    }
+  };
+
+  // Initial session check
   useEffect(() => {
-    // Simulate fetching user data
-    const fetchUser = async () => {
+    const initializeUser = async () => {
       try {
-        // TODO: Replace with actual API call
-        const mockUser: User = {
-          id: '1',
-          name: 'John Doe',
-          email: 'john@example.com',
-          preferences: {
-            workoutTime: 'Morning (5am - 9am)',
-            workoutDuration: '45 minutes',
-            notifications: {
-              email: true,
-              reminders: true,
-            },
-          },
-        };
-        setUser(mockUser);
-      } catch (error) {
-        console.error('Error fetching user:', error);
+        await checkSession();
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUser();
+    initializeUser();
   }, []);
+
+  // Periodic session check (every 5 minutes)
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (user) {
+        await checkSession();
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => clearInterval(interval);
+  }, [user]);
 
   const updateUser = (data: Partial<User>) => {
     setUser((prev) => (prev ? { ...prev, ...data } : null));
   };
 
   return (
-    <UserContext.Provider value={{ user, loading, updateUser }}>
+    <UserContext.Provider value={{ user, loading, updateUser, checkSession, logout }}>
       {children}
     </UserContext.Provider>
   );
