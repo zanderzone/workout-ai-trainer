@@ -56,12 +56,20 @@ Workout AI Trainer - MVP (v0.1):
             Notes: Prevent invalid WOD requests
     
     WOD Generation UI:
-        ☐ Create WOD request form @P0 @4h @id(wod-form) @sprint(2)
+        ☐ Create WOD request form @P0 @4h @id(wod-form) @sprint(2) @started(25-03-28 00:41)
             Notes: Form with essential workout preferences
         ☐ Implement WOD display component @P0 @3h @id(wod-display) @sprint(2)
             Notes: Display generated workout details
         ☐ Add loading states and basic error messages @P0 @2h @id(ui-feedback) @sprint(2)
             Notes: User feedback during API calls
+        ☐ Add avatar/profile picture functionality
+          - [ ] Add profile picture upload component
+          - [ ] Implement image storage in backend
+          - [ ] Add image cropping and optimization
+          - [ ] Update user profile to display avatar
+          - [ ] Add fallback avatar with initials
+          - [ ] Add avatar to navigation and dashboard
+          - [ ] Add avatar to workout history and progress pages
 
     Head Coach Personality:
         ☐ Define MVP head coach personality @P0 @4h @id(head-coach) @sprint(2)
@@ -152,6 +160,157 @@ Workout AI Trainer - MVP (v0.1):
               * Set up alerts for unusual patterns
               * Create usage analytics dashboard
 
+    MVP Deployment Plan (Week 5):
+        Infrastructure Setup:
+            ☐ Set up production environment @P0 @4h @id(prod-setup)
+                Notes: Configure production infrastructure
+                Subtasks:
+                - Cloud Infrastructure:
+                  * Set up GCP project for production
+                  * Configure production VPC and networking
+                  * Set up production Kubernetes cluster
+                  * Configure production database
+                - Monitoring & Logging:
+                  * Set up production monitoring
+                  * Configure logging and alerting
+                  * Set up error tracking
+                  * Configure performance monitoring
+                - Security:
+                  * Set up production SSL/TLS
+                  * Configure production firewall rules
+                  * Set up production secrets management
+                  * Configure production IAM roles
+
+        Deployment Pipeline:
+            ☐ Implement CI/CD pipeline @P0 @4h @id(cicd-pipeline)
+                Notes: Set up automated deployment pipeline
+                Subtasks:
+                - Build Pipeline:
+                  * Set up GitHub Actions workflows
+                  * Configure automated testing
+                  * Set up automated builds
+                  * Configure artifact storage
+                - Deployment Pipeline:
+                  * Set up automated deployments
+                  * Configure deployment environments
+                  * Set up rollback procedures
+                  * Configure deployment notifications
+                - Quality Gates:
+                  * Set up code quality checks
+                  * Configure security scanning
+                  * Set up performance testing
+                  * Configure dependency scanning
+
+        Invite System:
+            ☐ Implement invite-only system @P0 @3h @id(invite-system)
+                Notes: Set up invite-only access for MVP
+                Subtasks:
+                - Invite Management:
+                  * Create invite code generation system
+                  * Set up invite code validation
+                  * Add invite code tracking
+                  * Configure invite limits
+                - User Management:
+                  * Set up user whitelist system
+                  * Configure user access controls
+                  * Add user onboarding flow
+                  * Set up user feedback collection
+                - Analytics:
+                  * Track invite code usage
+                  * Monitor user engagement
+                  * Track feature usage
+                  * Set up user feedback system
+
+        Launch Preparation:
+            ☐ Prepare for MVP launch @P0 @3h @id(launch-prep)
+                Notes: Final preparations for MVP launch
+                Subtasks:
+                - Documentation:
+                  * Create user documentation
+                  * Set up API documentation
+                  * Create deployment guides
+                  * Document known limitations
+                - Testing:
+                  * Perform load testing
+                  * Conduct security testing
+                  * Test backup/recovery
+                  * Validate monitoring
+                - Launch Checklist:
+                  * Create launch checklist
+                  * Set up launch monitoring
+                  * Configure launch alerts
+                  * Prepare rollback plan
+
+  Sprint 4 - Community & Team Features (1 week, 20 hours):
+    Global WOD Features:
+        ☐ Implement daily global WOD generation @P1 @6h @id(global-wod) @sprint(4)
+            Notes: Generate and share a daily WOD for all users
+            Subtasks:
+            - Daily WOD Generation System:
+              * Set up scheduled WOD generation (e.g., midnight UTC)
+              * Implement WOD rotation system
+              * Add WOD difficulty scaling
+              * Include scaling options for all levels
+            - Global WOD Display:
+              * Create global WOD dashboard
+              * Add WOD history view
+              * Implement WOD search/filter
+              * Add WOD bookmarking
+            - Community Features:
+              * Add comments/feedback system
+              * Implement WOD rating system
+              * Add completion tracking
+              * Show completion statistics
+
+    Team WOD Features:
+        ☐ Implement team WOD generation @P1 @6h @id(team-wod) @sprint(4)
+            Notes: Allow teams to generate and share WODs
+            Subtasks:
+            - Team Management:
+              * Create team creation/management
+              * Add team member roles
+              * Implement team settings
+              * Add team activity feed
+            - Team WOD Generation:
+              * Add team-specific WOD generation
+              * Implement team WOD scheduling
+              * Add team WOD templates
+              * Include team scaling options
+            - Team Performance:
+              * Add team leaderboards
+              * Implement team statistics
+              * Show team progress
+              * Add team achievements
+
+    Community Features:
+        ☐ Add community leaderboards @P1 @4h @id(community-leaderboards) @sprint(4)
+            Notes: Global and team-based leaderboards
+            Subtasks:
+            - Global Leaderboards:
+              * Daily WOD rankings
+              * Weekly/monthly rankings
+              * All-time rankings
+              * Category-based rankings
+            - Team Leaderboards:
+              * Team performance rankings
+              * Team member rankings
+              * Team achievement rankings
+              * Team history tracking
+
+        ☐ Implement social features @P1 @4h @id(social-features) @sprint(4)
+            Notes: Community interaction and sharing
+            Subtasks:
+            - Social Features:
+              * Add friend system
+              * Implement activity feed
+              * Add achievement sharing
+              * Include social notifications
+            - Community Engagement:
+              * Add community challenges
+              * Implement achievement system
+              * Add community events
+              * Include community rewards
+
   Sprint Summary:
   Sprint 1 (20h): WOD GET API, Core Auth & Basic UI
   - Focus: User authentication and basic UI setup
@@ -167,9 +326,14 @@ Workout AI Trainer - MVP (v0.1):
   - Focus: Enhanced WOD features, advanced rate limiting, coach performance tracking, LLM scaling
   - Key Deliverables: WOD pagination, history, advanced rate limiting, performance metrics, scalable LLM infrastructure
   - Dependencies: Core WOD Features from Sprint 2
+
+  Sprint 4 (20h): Community & Team Features
+  - Focus: Global WOD sharing, team features, and community engagement
+  - Key Deliverables: Daily global WOD, team WOD generation, community leaderboards, social features
+  - Dependencies: WOD Feature Enhancements from Sprint 3
   
-  Total MVP Time: 68 hours
-  MVP Duration: 3 weeks
+  Total MVP Time: 88 hours
+  MVP Duration: 4 weeks
   
   Future Improvements (v0.2):
   ☐ Enhanced Features:
