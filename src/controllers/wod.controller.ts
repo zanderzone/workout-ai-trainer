@@ -51,7 +51,7 @@ const wodController = {
             const response = await workoutGenerator.generateWod(
                 userId,
                 userProfile || {}, // Provide empty object if userProfile is not provided
-                workoutOptions ? { userId, ...workoutOptions } : { userId } // Include userId in workoutOptions
+                workoutOptions ? { ...workoutOptions, userId } : { userId } // Include userId in workoutOptions
             );
 
             // Add required fields before validation
