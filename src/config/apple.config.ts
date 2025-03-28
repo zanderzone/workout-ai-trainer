@@ -37,8 +37,17 @@ export interface AppleConfig {
  */
 function loadPrivateKey(keyPath: string): string {
   try {
-    return readFileSync(keyPath, 'utf8');
+    console.log('Loading private key from path:', keyPath);
+    const privateKey = readFileSync(keyPath, 'utf8');
+    console.log('Private key loaded successfully:', {
+      length: privateKey.length,
+      hasHeader: privateKey.includes('BEGIN PRIVATE KEY'),
+      hasFooter: privateKey.includes('END PRIVATE KEY'),
+      firstLine: privateKey.split('\n')[0]
+    });
+    return privateKey;
   } catch (error) {
+    console.error('Error loading private key:', error);
     throw new Error(`${APPLE_CONFIG_MESSAGES.INVALID_KEY_PATH} ${keyPath}`);
   }
 }

@@ -29,12 +29,20 @@ app.use(cors({
     'https://appleid.apple.com'
   ],
   credentials: true,
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  exposedHeaders: ['Set-Cookie']
 }));
 
-// Parse cookies
+// Parse cookies with appropriate settings
 app.use(cookieParser());
+
+// Add security headers
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  res.set('Pragma', 'no-cache');
+  next();
+});
 
 // Configure session middleware with MongoDB store
 app.use(session({

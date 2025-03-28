@@ -221,29 +221,22 @@ export async function refreshGoogleToken(refreshToken: string): Promise<GoogleTo
  */
 export async function exchangeAppleToken(code: string): Promise<{ tokens: AppleTokenResponse; userInfo: AppleUserInfo }> {
     try {
-        debugApple('Starting Apple token exchange...');
-        debugApple('Code received:', code ? 'present' : 'missing');
-        debugApple('Configuration:', {
+        console.log('Starting Apple token exchange...');
+        console.log('Apple configuration:', {
             clientId: appleConfig.clientId,
+            servicesId: appleConfig.servicesId,
             teamId: appleConfig.teamId,
             keyId: appleConfig.keyId,
             callbackUrl: appleConfig.callbackUrl,
-            privateKeyPresent: !!appleConfig.privateKey
+            privateKeyLength: appleConfig.privateKey?.length || 0
         });
 
-        // Check if we're in test mode
-        if (process.env.MOCK_APPLE_TOKENS && process.env.MOCK_APPLE_USER_INFO) {
-            return {
-                tokens: JSON.parse(process.env.MOCK_APPLE_TOKENS),
-                userInfo: JSON.parse(process.env.MOCK_APPLE_USER_INFO)
-            };
-        }
-
-        debugApple('Generating client secret...');
+        // Generate client secret
+        console.log('Generating client secret...');
         const clientSecret = await generateAppleClientSecret();
-        debugApple('Client secret generated successfully');
+        console.log('Client secret generated successfully');
 
-        debugApple('Making token exchange request to Apple...');
+        // Prepare token exchange request
         const params = new URLSearchParams();
         params.append('code', code);
         params.append('client_id', appleConfig.servicesId);
@@ -251,8 +244,14 @@ export async function exchangeAppleToken(code: string): Promise<{ tokens: AppleT
         params.append('grant_type', 'authorization_code');
         params.append('redirect_uri', appleConfig.callbackUrl);
 
-        debugApple('Token exchange parameters:', Object.fromEntries(params));
+        console.log('Making token exchange request with parameters:', {
+            code: `${code.substring(0, 10)}...`,
+            client_id: appleConfig.servicesId,
+            grant_type: 'authorization_code',
+            redirect_uri: appleConfig.callbackUrl
+        });
 
+        // Make the token exchange request
         const response = await axios.post<AppleTokenResponse>(
             'https://appleid.apple.com/auth/token',
             params.toString(),
@@ -264,25 +263,29 @@ export async function exchangeAppleToken(code: string): Promise<{ tokens: AppleT
             }
         );
 
-        debugApple('Token exchange successful:', {
-            accessToken: response.data.access_token ? 'present' : 'missing',
-            tokenType: response.data.token_type,
-            expiresIn: response.data.expires_in,
-            refreshToken: response.data.refresh_token ? 'present' : 'missing',
-            idToken: response.data.id_token ? 'present' : 'missing'
+        console.log('Token exchange response:', {
+            status: response.status,
+            statusText: response.statusText,
+            data: {
+                token_type: response.data.token_type,
+                expires_in: response.data.expires_in,
+                access_token: response.data.access_token ? '[PRESENT]' : '[MISSING]',
+                refresh_token: response.data.refresh_token ? '[PRESENT]' : '[MISSING]',
+                id_token: response.data.id_token ? '[PRESENT]' : '[MISSING]'
+            }
         });
 
-        // Decode the ID token to get user info
+        // Decode the ID token
         const decodedToken = jwt.decode(response.data.id_token) as AppleUserInfo;
         if (!decodedToken) {
             throw new Error('Failed to decode Apple ID token');
         }
 
-        debugApple('Successfully decoded ID token:', {
+        console.log('Successfully decoded ID token:', {
             sub: decodedToken.sub,
             email: decodedToken.email,
-            emailVerified: decodedToken.email_verified,
-            name: decodedToken.name ? 'present' : 'missing'
+            email_verified: decodedToken.email_verified,
+            name: decodedToken.name ? '[PRESENT]' : '[MISSING]'
         });
 
         return {
@@ -290,13 +293,18 @@ export async function exchangeAppleToken(code: string): Promise<{ tokens: AppleT
             userInfo: decodedToken
         };
     } catch (error: any) {
-        debugApple('Error in Apple token exchange:', {
+        console.error('Error in Apple token exchange:', {
             message: error.message,
             response: error.response?.data,
-            status: error.response?.status
+            status: error.response?.status,
+            config: error.config ? {
+                url: error.config.url,
+                method: error.config.method,
+                headers: error.config.headers
+            } : undefined
         });
         throw new OAuthError(
-            'Failed to exchange Apple token',
+            `Failed to exchange Apple token: ${error.message}`,
             error.response?.data?.error || 'token_exchange_failed',
             'apple'
         );
@@ -347,15 +355,37 @@ export async function refreshAppleToken(refreshToken: string): Promise<AppleToke
 async function generateAppleClientSecret(): Promise<string> {
     try {
         debugApple('Generating client secret...');
-        debugApple('Apple config:', {
+        debugApple('Apple config for client secret:', {
             clientId: appleConfig.clientId,
             servicesId: appleConfig.servicesId,
             teamId: appleConfig.teamId,
             keyId: appleConfig.keyId,
-            callbackUrl: appleConfig.callbackUrl
+            privateKeyLength: appleConfig.privateKey?.length || 0
         });
 
-        const clientSecret = jwt.sign({}, appleConfig.privateKey, {
+        // Ensure private key is in PEM format
+        let privateKey = appleConfig.privateKey;
+        if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+            privateKey = '-----BEGIN PRIVATE KEY-----\n' + privateKey;
+        }
+        if (!privateKey.includes('-----END PRIVATE KEY-----')) {
+            privateKey = privateKey + '\n-----END PRIVATE KEY-----';
+        }
+
+        // Verify private key format
+        const privateKeyLines = privateKey.split('\n');
+        const hasHeader = privateKeyLines[0].includes('BEGIN PRIVATE KEY');
+        const hasFooter = privateKeyLines[privateKeyLines.length - 1].includes('END PRIVATE KEY');
+
+        debugApple('Private key validation:', {
+            totalLines: privateKeyLines.length,
+            hasHeader,
+            hasFooter,
+            firstLine: privateKeyLines[0],
+            lastLine: privateKeyLines[privateKeyLines.length - 1]
+        });
+
+        const clientSecret = jwt.sign({}, privateKey, {
             algorithm: 'ES256',
             expiresIn: '1h',
             audience: 'https://appleid.apple.com',
@@ -370,12 +400,25 @@ async function generateAppleClientSecret(): Promise<string> {
 
         // Log the decoded token for debugging
         const decoded = jwt.decode(clientSecret, { complete: true });
-        debugApple('Decoded client secret:', JSON.stringify(decoded, null, 2));
+        const payload = decoded?.payload as Record<string, any>;
+        debugApple('Generated client secret details:', {
+            header: decoded?.header,
+            payload: payload ? {
+                ...payload,
+                iat: payload.iat ? new Date(payload.iat * 1000).toISOString() : undefined,
+                exp: payload.exp ? new Date(payload.exp * 1000).toISOString() : undefined
+            } : null
+        });
 
         return clientSecret;
-    } catch (error) {
-        debugApple('Error generating Apple client secret:', error);
-        throw new Error('Failed to generate Apple client secret');
+    } catch (error: any) {
+        debugApple('Error generating Apple client secret:', {
+            message: error.message,
+            stack: error.stack,
+            privateKeyPresent: !!appleConfig.privateKey,
+            privateKeyLength: appleConfig.privateKey?.length || 0
+        });
+        throw new Error(`Failed to generate Apple client secret: ${error.message}`);
     }
 }
 
