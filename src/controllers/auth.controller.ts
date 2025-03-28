@@ -18,7 +18,7 @@ type RequestWithSession = Request & { session: CustomSession };
 export const authController = {
     // Google OAuth methods
     googleAuth: (req: Request, res: Response) => {
-        const state = googleConfig.state;
+        const state = crypto.randomBytes(32).toString('hex');
         const scope = googleConfig.scope.join(' ');
 
         const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
@@ -35,15 +35,16 @@ export const authController = {
             clientId: googleConfig.clientId ? 'present' : 'missing',
             callbackUrl: googleConfig.callbackUrl,
             scope,
-            state
+            state: state.substring(0, 8) + '...' // Log only part of the state for security
         });
 
         // Set a cookie to verify the state parameter
         res.cookie('oauth_state', state, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 5 * 60 * 1000 // 5 minutes
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            maxAge: 5 * 60 * 1000, // 5 minutes
+            domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined
         });
 
         res.redirect(authUrl.toString());
@@ -61,19 +62,20 @@ export const authController = {
             console.log('Google OAuth Callback Received:', { code, state });
 
             // Verify state to prevent CSRF attacks
-            if (state !== googleConfig.state) {
+            if (state !== req.cookies.oauth_state) {
                 console.error('Invalid state parameter:', {
                     received: state,
-                    expected: googleConfig.state,
                     storedState: req.cookies.oauth_state
                 });
-                res.status(400).json({ message: 'Invalid state parameter' });
+                const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+                res.redirect(`${frontendUrl}/login?error=invalid_state`);
                 return;
             }
 
             if (!code) {
                 console.error('No authorization code received');
-                res.status(400).json({ message: 'No authorization code received' });
+                const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+                res.redirect(`${frontendUrl}/login?error=no_code`);
                 return;
             }
 
@@ -90,8 +92,11 @@ export const authController = {
                     }
                 });
 
+                // Get database instance
+                const db = await DatabaseManager.getInstance().getDb();
+                const userCollection = db.collection('users');
+
                 // Check if user exists using providerId
-                const userCollection = req.app.locals.userCollection;
                 console.log('Looking up user with providerId:', userInfo.id);
                 const existingUser = await userCollection.findOne(
                     { providerId: userInfo.id },
@@ -152,21 +157,26 @@ export const authController = {
                     { expiresIn: '7d' }
                 );
 
+                // Clear the state cookie
+                res.clearCookie('oauth_state', {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                    domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined
+                });
+
                 // Redirect based on registration status
                 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
                 const redirectUrl = !existingUser || !existingUser.isRegistrationComplete
                     ? `${frontendUrl}/register?token=${token}`
-                    : `${frontendUrl}/callback?token=${token}`;
+                    : `${frontendUrl}/callback?token=${token}&returnUrl=/dashboard`;
 
                 console.log('Authentication successful, redirecting to:', redirectUrl);
                 res.redirect(redirectUrl);
             } catch (error: any) {
                 console.error('Google token exchange error:', error);
-                if (error.message === 'Failed to exchange Google token') {
-                    res.status(401).json({ message: 'Invalid authorization code' });
-                    return;
-                }
-                throw error;
+                const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+                res.redirect(`${frontendUrl}/login?error=token_exchange_failed`);
             }
         } catch (error) {
             console.error('Google OAuth error:', error);

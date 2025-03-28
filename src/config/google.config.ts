@@ -9,6 +9,5 @@ export const googleConfig = {
     scope: [
         'https://www.googleapis.com/auth/userinfo.email',
         'https://www.googleapis.com/auth/userinfo.profile'
-    ],
-    state: process.env.GOOGLE_STATE || 'google-auth-state'
+    ]
 }; 
