@@ -58,10 +58,36 @@ Workout AI Trainer - MVP (v0.1):
     WOD Generation UI:
         ☐ Create WOD request form @P0 @4h @id(wod-form) @sprint(2) @started(25-03-28 00:41)
             Notes: Form with essential workout preferences
-        ☐ Implement WOD display component @P0 @3h @id(wod-display) @sprint(2)
+            Subtasks:
+            - Added form validation
+            - Added required field indicators
+            - Added regeneration limit (3 attempts)
+            - Added error messages
+            - Pending:
+              * Additional validation rules may be needed
+              * UI/UX improvements based on user feedback
+              * Accessibility enhancements
+        ☐ Implement WOD display component @P0 @3h @id(wod-display) @sprint(2) @started(25-03-28 00:58)
             Notes: Display generated workout details
-        ☐ Add loading states and basic error messages @P0 @2h @id(ui-feedback) @sprint(2)
+            Subtasks:
+            - Added workout details display
+            - Added feedback buttons
+            - Added loading states
+            - Pending:
+              * Additional display options may be needed
+              * Mobile responsiveness improvements
+              * Print/export functionality
+        ☐ Add loading states and basic error messages @P0 @2h @id(ui-feedback) @sprint(2) @started(25-03-28 02:30)
             Notes: User feedback during API calls
+            Subtasks:
+            - Added loading states for form submission
+            - Added loading states for feedback
+            - Added error messages for validation
+            - Added error messages for API failures
+            - Pending:
+              * Additional error states may be needed
+              * More detailed error messages
+              * Error recovery suggestions
         ☐ Add avatar/profile picture functionality
           - [ ] Add profile picture upload component
           - [ ] Implement image storage in backend
@@ -105,6 +131,18 @@ Workout AI Trainer - MVP (v0.1):
             - Set up monitoring for OpenAI API usage
             - Add error handling for rate limit exceeded
             - Add logging for rate limit events
+        ☐ Add /me endpoint for user profile data @P0 @2h @id(me-endpoint) @sprint(2)
+            Notes: Centralized endpoint for user profile data and preferences
+            Subtasks:
+            - Create /me GET endpoint
+            - Add user profile data retrieval
+            - Add user preferences retrieval
+            - Add proper error handling
+            - Add authentication validation
+            - Update frontend to use /me endpoint
+            - Add caching for user data
+            - Add proper TypeScript types
+            - Add tests for the endpoint
 
   Sprint 3 - WOD Feature Enhancements (1 week, 25 hours):
     WOD API Enhancements:

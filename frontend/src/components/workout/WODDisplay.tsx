@@ -2,22 +2,55 @@
 
 import React from 'react';
 import { WODResponse } from '@/services/workoutService';
+import { ThumbsUp, ThumbsDown } from 'lucide-react';
 
 interface WODDisplayProps {
   wod: WODResponse;
   onSave?: () => Promise<void>;
+  onFeedback?: (rating: 'positive' | 'negative') => Promise<void>;
   isLoading?: boolean;
+  isFeedbackLoading?: boolean;
 }
 
-export default function WODDisplay({ wod, onSave, isLoading }: WODDisplayProps) {
+export default function WODDisplay({ 
+  wod, 
+  onSave, 
+  onFeedback,
+  isLoading,
+  isFeedbackLoading 
+}: WODDisplayProps) {
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">{wod.name}</h2>
-        <p className="text-gray-600">{wod.description}</p>
-        <div className="mt-4 flex space-x-4 text-sm text-gray-500">
-          <span>Duration: {wod.duration}</span>
-          <span>Intensity: {wod.intensity}</span>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">{wod.name}</h2>
+            <p className="text-gray-600">{wod.description}</p>
+            <div className="mt-4 flex space-x-4 text-sm text-gray-500">
+              <span>Duration: {wod.duration}</span>
+              <span>Intensity: {wod.intensity}</span>
+            </div>
+          </div>
+          {onFeedback && (
+            <div className="flex space-x-2">
+              <button
+                onClick={() => onFeedback('positive')}
+                disabled={isFeedbackLoading}
+                className="p-2 rounded-full hover:bg-green-100 text-green-600 transition-colors duration-200"
+                title="Like this workout"
+              >
+                <ThumbsUp className="w-6 h-6" />
+              </button>
+              <button
+                onClick={() => onFeedback('negative')}
+                disabled={isFeedbackLoading}
+                className="p-2 rounded-full hover:bg-red-100 text-red-600 transition-colors duration-200"
+                title="Dislike this workout"
+              >
+                <ThumbsDown className="w-6 h-6" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
