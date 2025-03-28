@@ -1,11 +1,17 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { checkAuthStatus } from '@/lib/api';
 
 interface User {
-  id: string;
-  name: string;
+  _id: string;
   email: string;
+  provider: string;
+  providerId: string;
+  name?: string;
+  isRegistrationComplete: boolean;
+  createdAt: string;
+  updatedAt: string;
   preferences?: {
     workoutTime?: string;
     workoutDuration?: string;
@@ -29,43 +35,52 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lastChecked, setLastChecked] = useState<number>(0);
 
-  const checkSession = async () => {
+  const checkSession = async (force: boolean = false) => {
     try {
-      const response = await fetch('/api/auth/session');
-      if (!response.ok) {
+      const now = Date.now();
+      // Only check if forced or if last check was more than 4.5 minutes ago
+      if (!force && lastChecked && now - lastChecked < 4.5 * 60 * 1000) {
+        return !!user;
+      }
+
+      const token = localStorage.getItem('token');
+      if (!token) {
         setUser(null);
         return false;
       }
-      const data = await response.json();
-      if (!data.user) {
+
+      const response = await checkAuthStatus();
+      setLastChecked(now);
+
+      if (!response.isAuthenticated || !response.user) {
         setUser(null);
+        localStorage.removeItem('token');
         return false;
       }
-      setUser(data.user);
+
+      setUser(response.user);
       return true;
     } catch (error) {
       console.error('Error checking session:', error);
       setUser(null);
+      localStorage.removeItem('token');
       return false;
     }
   };
 
-  const logout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-    } catch (error) {
-      console.error('Error logging out:', error);
-    } finally {
-      setUser(null);
-    }
+  const logout = () => {
+    localStorage.removeItem('token');
+    setUser(null);
+    setLastChecked(0);
   };
 
   // Initial session check
   useEffect(() => {
     const initializeUser = async () => {
       try {
-        await checkSession();
+        await checkSession(true);
       } finally {
         setLoading(false);
       }
@@ -76,11 +91,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   // Periodic session check (every 5 minutes)
   useEffect(() => {
-    const interval = setInterval(async () => {
+    const interval = setInterval(() => {
       if (user) {
-        await checkSession();
+        checkSession();
       }
-    }, 5 * 60 * 1000); // 5 minutes
+    }, 5 * 60 * 1000);
 
     return () => clearInterval(interval);
   }, [user]);

@@ -30,16 +30,25 @@ const isValidProvider = (provider: string): provider is 'google' | 'apple' => {
 
 export const authenticateJWT = asyncHandler(async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const authHeader = req.headers.authorization;
+    console.log('Authenticating request:', {
+        path: req.path,
+        method: req.method,
+        hasAuthHeader: !!authHeader
+    });
+
     if (!authHeader?.startsWith('Bearer ')) {
+        console.log('No Bearer token provided');
         throw new UnauthorizedError('No token provided');
     }
 
     const token = authHeader.split(' ')[1];
     try {
+        console.log('Verifying JWT token');
         const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
 
         // Validate provider
         if (!isValidProvider(decoded.provider)) {
+            console.log('Invalid provider:', decoded.provider);
             throw new UnauthorizedError('Invalid provider type');
         }
 
@@ -53,8 +62,10 @@ export const authenticateJWT = asyncHandler(async (req: Request, res: Response, 
             updatedAt: new Date()
         };
         req.user = user;
+        console.log('Authentication successful for user:', decoded.email);
         next();
     } catch (error) {
+        console.error('JWT verification failed:', error);
         if (error instanceof HttpError) {
             throw error;
         }
@@ -74,9 +85,10 @@ export const requireRole = (roles: string[]) => {
     });
 };
 
-export const validateSession = (req: Request, res: Response, next: NextFunction) => {
-    if (!req.isAuthenticated()) {
-        throw new UnauthorizedError('User not authenticated');
-    }
-    next();
-}; 
+// Remove or comment out the validateSession middleware since we're using JWT
+// export const validateSession = (req: Request, res: Response, next: NextFunction) => {
+//     if (!req.isAuthenticated()) {
+//         throw new UnauthorizedError('User not authenticated');
+//     }
+//     next();
+// }; 

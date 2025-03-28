@@ -14,14 +14,14 @@ function DashboardContent({ children }: DashboardLayoutProps) {
   const router = useRouter();
   const { user, loading } = useUser();
 
-  // Handle authentication redirects
+  // Redirect if not authenticated
   useEffect(() => {
     if (!loading && !user) {
-      // Redirect to login with return URL
+      console.log('User not authenticated, redirecting to login');
       const returnUrl = encodeURIComponent(pathname);
       router.push(`/login?returnUrl=${returnUrl}`);
     }
-  }, [user, loading, pathname, router]);
+  }, [loading, user, pathname, router]);
 
   // Show loading state while checking authentication
   if (loading) {
@@ -130,10 +130,10 @@ function DashboardContent({ children }: DashboardLayoutProps) {
           <div className="p-4 border-t">
             <div className="flex items-center space-x-3">
               <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
-                {user.name.charAt(0)}
+                {user.email.charAt(0).toUpperCase()}
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-700">{user.name}</p>
+                <p className="text-sm font-medium text-gray-700">{user.name || 'User'}</p>
                 <p className="text-xs text-gray-500">{user.email}</p>
               </div>
             </div>
