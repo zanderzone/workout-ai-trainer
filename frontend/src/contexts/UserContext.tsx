@@ -1,55 +1,77 @@
+'use client';
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import jwt_decode from 'jwt-decode';
 
 interface User {
-    providerId: string;
-    email: string;
-    provider: 'google' | 'apple';
-    firstName?: string;
-    lastName?: string;
-    displayName?: string;
-    emailVerified?: boolean;
+  id: string;
+  name: string;
+  email: string;
+  preferences?: {
+    workoutTime?: string;
+    workoutDuration?: string;
+    notifications?: {
+      email: boolean;
+      reminders: boolean;
+    };
+  };
 }
 
 interface UserContextType {
-    user: User | null;
-    setUser: (user: User | null) => void;
-    isLoading: boolean;
+  user: User | null;
+  loading: boolean;
+  updateUser: (data: Partial<User>) => void;
 }
 
-const UserContext = createContext<UserContextType>({
-    user: null,
-    setUser: () => {},
-    isLoading: true
-});
+const UserContext = createContext<UserContextType | undefined>(undefined);
 
-export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+export function UserProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const initializeUser = () => {
-            const token = localStorage.getItem('token');
-            if (token) {
-                try {
-                    const decoded = jwt_decode<User>(token);
-                    setUser(decoded);
-                } catch (error) {
-                    console.error('Error decoding token:', error);
-                    localStorage.removeItem('token');
-                }
-            }
-            setIsLoading(false);
+  useEffect(() => {
+    // Simulate fetching user data
+    const fetchUser = async () => {
+      try {
+        // TODO: Replace with actual API call
+        const mockUser: User = {
+          id: '1',
+          name: 'John Doe',
+          email: 'john@example.com',
+          preferences: {
+            workoutTime: 'Morning (5am - 9am)',
+            workoutDuration: '45 minutes',
+            notifications: {
+              email: true,
+              reminders: true,
+            },
+          },
         };
+        setUser(mockUser);
+      } catch (error) {
+        console.error('Error fetching user:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-        initializeUser();
-    }, []);
+    fetchUser();
+  }, []);
 
-    return (
-        <UserContext.Provider value={{ user, setUser, isLoading }}>
-            {children}
-        </UserContext.Provider>
-    );
-};
+  const updateUser = (data: Partial<User>) => {
+    setUser((prev) => (prev ? { ...prev, ...data } : null));
+  };
 
-export const useUser = () => useContext(UserContext); 
+  return (
+    <UserContext.Provider value={{ user, loading, updateUser }}>
+      {children}
+    </UserContext.Provider>
+  );
+}
+
+export function useUser() {
+  const context = useContext(UserContext);
+  if (context === undefined) {
+    throw new Error('useUser must be used within a UserProvider');
+  }
+  return context;
+} 
