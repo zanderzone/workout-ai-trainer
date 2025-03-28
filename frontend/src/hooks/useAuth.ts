@@ -19,6 +19,19 @@ export function useAuth() {
 
         async function validateAuth() {
             try {
+                // First check if we have a token in localStorage
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    if (!mounted) return;
+                    setAuthState({
+                        isAuthenticated: false,
+                        isLoading: false,
+                        error: null,
+                    });
+                    return;
+                }
+
+                // If we have a token, verify it with the backend
                 const { isAuthenticated } = await checkAuthStatus();
 
                 if (!mounted) return;

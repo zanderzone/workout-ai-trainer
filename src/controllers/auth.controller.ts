@@ -154,9 +154,9 @@ export const authController = {
 
                 // Redirect based on registration status
                 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
-                const redirectUrl = (!existingUser || !existingUser.isRegistrationComplete)
+                const redirectUrl = !existingUser || !existingUser.isRegistrationComplete
                     ? `${frontendUrl}/register?token=${token}`
-                    : `${frontendUrl}/auth/callback?token=${token}`;
+                    : `${frontendUrl}/callback?token=${token}`;
 
                 console.log('Authentication successful, redirecting to:', redirectUrl);
                 res.redirect(redirectUrl);
@@ -345,7 +345,10 @@ export const authController = {
 
             // Redirect to frontend with token
             const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
-            const redirectUrl = `${frontendUrl}/auth/callback?token=${token}`;
+            const redirectUrl = !user.isRegistrationComplete
+                ? `${frontendUrl}/register?token=${token}`
+                : `${frontendUrl}/callback?token=${token}&returnUrl=/dashboard`;
+
             console.log('Redirecting to frontend:', redirectUrl);
             res.redirect(redirectUrl);
 
@@ -358,10 +361,48 @@ export const authController = {
 
     // Auth status check
     checkAuthStatus: async (req: Request, res: Response): Promise<void> => {
-        if (req.isAuthenticated()) {
-            res.json({ isAuthenticated: true, user: req.user });
-        } else {
-            res.json({ isAuthenticated: false });
+        try {
+            const authHeader = req.headers.authorization;
+            console.log('Checking auth status with header:', authHeader ? 'Bearer token present' : 'No bearer token');
+
+            if (!authHeader?.startsWith('Bearer ')) {
+                console.log('No Bearer token found in Authorization header');
+                res.status(401).json({ isAuthenticated: false, user: null });
+                return;
+            }
+
+            const token = authHeader.split(' ')[1];
+            console.log('Verifying JWT token');
+            const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+                providerId: string;
+                email: string;
+                provider: string;
+                refreshToken?: string;
+                tokenExpiresAt?: Date;
+            };
+
+            console.log('Token verified, fetching user from database');
+            // Get user from database using DatabaseManager
+            const db = await DatabaseManager.getInstance().getDb();
+            const userCollection = db.collection('users');
+            const user = await userCollection.findOne({ email: decoded.email });
+
+            if (!user) {
+                console.log('No user found with email:', decoded.email);
+                res.status(401).json({ isAuthenticated: false, user: null });
+                return;
+            }
+
+            console.log('User found, returning user data');
+            // Return user data without sensitive information
+            const { refreshToken, tokenExpiresAt, ...userData } = user;
+            res.json({
+                isAuthenticated: true,
+                user: userData
+            });
+        } catch (error) {
+            console.error('Error checking auth status:', error);
+            res.status(401).json({ isAuthenticated: false, user: null });
         }
     },
 
