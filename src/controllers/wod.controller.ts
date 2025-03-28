@@ -48,10 +48,16 @@ const wodController = {
 
             // Generate and save WOD
             const workoutGenerator = getWodGenerator();
+
+            // Validate userId consistency if workoutOptions is provided
+            if (workoutOptions?.userId && workoutOptions.userId !== userId) {
+                throw new Error('User ID mismatch: provided userId does not match workoutOptions.userId');
+            }
+
             const response = await workoutGenerator.generateWod(
                 userId,
                 userProfile || {}, // Provide empty object if userProfile is not provided
-                workoutOptions ? { userId, ...workoutOptions } : { userId } // Include userId in workoutOptions
+                workoutOptions ? { ...workoutOptions, userId } : { userId } // Ensure consistent userId
             );
 
             // Add required fields before validation

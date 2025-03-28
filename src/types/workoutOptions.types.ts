@@ -21,7 +21,7 @@ export interface WorkoutOptions {
     periodization?: string; // e.g., "concurrent", "linear", "undulating" - AI determines structure
     weather?: string; // e.g., "rainy", "sunny", "cloudy"
     location?: string; // e.g., "gym", "home", "park"
-    goals?: string; // e.g., "weight loss", "muscle gain", "endurance"
+    goals?: Array<"weight loss" | "muscle gain" | "strength" | "endurance" | "power" | "flexibility" | "general fitness">; // Updated to match validation schema
     includeExercises?: string[]; // e.g., ["push ups", "pull ups", "squats"]
     excludeExcercises?: string[]; // e.g., ["deadlifts", "bench press"]
     wodRequestTime?: string; // e.g., "11:15 PM"
