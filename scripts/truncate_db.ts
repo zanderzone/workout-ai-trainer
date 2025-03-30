@@ -5,6 +5,14 @@ dotenv.config();
 
 const MONGO_URI: string = process.env.MONGO_URI || "mongodb://localhost:27017/workouts_ai_trainer";
 
+// Define the collections we want to truncate
+const COLLECTIONS_TO_TRUNCATE = [
+    'users',
+    'fitness_profiles',
+    'workout_requests',
+    'wods'
+];
+
 async function truncateDatabase() {
     let mongoClient: MongoClient | null = null;
     try {
@@ -20,9 +28,13 @@ async function truncateDatabase() {
         const collectionNames = collections.map(collection => collection.name);
 
         // Truncate each collection
-        for (const collectionName of collectionNames) {
-            const result = await mongoDb.collection(collectionName).deleteMany({});
-            console.log(`Truncated collection "${collectionName}": ${result.deletedCount} documents deleted`);
+        for (const collectionName of COLLECTIONS_TO_TRUNCATE) {
+            if (collectionNames.includes(collectionName)) {
+                const result = await mongoDb.collection(collectionName).deleteMany({});
+                console.log(`Truncated collection "${collectionName}": ${result.deletedCount} documents deleted`);
+            } else {
+                console.log(`Collection "${collectionName}" not found, skipping...`);
+            }
         }
 
         console.log('\nDatabase truncated successfully!');
@@ -39,5 +51,5 @@ async function truncateDatabase() {
     }
 }
 
-// Run the truncate function
+// Run the truncation
 truncateDatabase(); 
