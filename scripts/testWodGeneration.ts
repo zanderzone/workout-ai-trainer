@@ -58,8 +58,15 @@ async function testGenerateWod() {
         const result = await workoutAdapter.generateWod(userId, userProfile, workoutOptions);
 
         // Format the WOD JSON into a markdown string
-        // Format the WOD JSON into a markdown string
-        const formattedWod = formatWodToMarkdown(result.wod);
+        // Add required fields to the WOD object before formatting
+        const wodWithRequiredFields = {
+            ...result.wod,
+            wodId: uuidv4(),
+            userId,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+        const formattedWod = formatWodToMarkdown(wodWithRequiredFields);
 
         // Save the formatted WOD to a markdown file
         const outputFilePath = 'generated-wod.md';
