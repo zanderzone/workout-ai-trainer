@@ -4,21 +4,16 @@ import { ObjectId, WithId } from "mongodb";
 
 // Base user type without _id
 export interface BaseUser {
-    providerId: string;
+    userId: string;                   // Unique user identifier
+    providerId: string;               // OAuth provider ID (Google/Apple)
+    provider: "google" | "apple";     // OAuth provider type
     email: string;
-    provider: 'google' | 'apple';
+    emailVerified: boolean;
     firstName?: string;
     lastName?: string;
     displayName?: string;
     profilePicture?: string;
-    emailVerified?: boolean;
-    accountStatus?: 'active' | 'disabled';
-    ageRange?: "18-24" | "25-34" | "35-44" | "45-54" | "55+";
-    sex?: "male" | "female" | "other";
-    fitnessLevel?: "beginner" | "intermediate" | "advanced";
-    goals?: string[];
-    injuriesOrLimitations?: string[];
-    // Token management
+    accountStatus?: "active" | "disabled";
     refreshToken?: string;
     tokenExpiresAt?: Date;
     isRegistrationComplete?: boolean;
@@ -44,21 +39,16 @@ export interface AuthenticatedRequest extends Request {
 
 const userSchema = z.object({
     _id: z.instanceof(ObjectId).optional(),
+    userId: z.string().uuid(),
     providerId: z.string().describe('OAuth provider ID (Google/Apple)'),
-    email: z.string().email(),
     provider: z.enum(['google', 'apple']),
+    email: z.string().email(),
+    emailVerified: z.boolean(),
     firstName: z.string().optional(),
     lastName: z.string().optional(),
     displayName: z.string().optional(),
     profilePicture: z.string().optional(),
-    emailVerified: z.boolean().optional(),
     accountStatus: z.enum(['active', 'disabled']).optional(),
-    ageRange: z.enum(["18-24", "25-34", "35-44", "45-54", "55+"]).optional(),
-    sex: z.enum(["male", "female", "other"]).optional(),
-    fitnessLevel: z.enum(["beginner", "intermediate", "advanced"]).optional(),
-    goals: z.array(z.string()).optional(),
-    injuriesOrLimitations: z.array(z.string()).optional(),
-    // Token management
     refreshToken: z.string().optional(),
     tokenExpiresAt: z.date().optional(),
     isRegistrationComplete: z.boolean().optional(),
@@ -67,11 +57,19 @@ const userSchema = z.object({
 });
 
 const userMongoSchema = new Schema({
+    userId: { type: String, required: true, unique: true },
     providerId: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
-    displayName: { type: String, required: true },
-    provider: { type: String, required: true },
-    picture: { type: String },
+    emailVerified: { type: Boolean, required: true },
+    provider: { type: String, required: true, enum: ['google', 'apple'] },
+    firstName: { type: String },
+    lastName: { type: String },
+    displayName: { type: String },
+    profilePicture: { type: String },
+    accountStatus: { type: String, enum: ['active', 'disabled'] },
+    refreshToken: { type: String },
+    tokenExpiresAt: { type: Date },
+    isRegistrationComplete: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 }, {
