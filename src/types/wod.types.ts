@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { warmupCooldownSchema } from "./workout.types";
+import { warmupCooldownSchema } from "../future/types/workout.types";
 import { Schema } from "mongoose";
 import { ObjectId } from "mongodb";
 import { enhancedWodValidationSchema } from "../validation/workout.validation";

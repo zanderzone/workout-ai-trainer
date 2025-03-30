@@ -27,7 +27,7 @@ export interface BaseUser {
 }
 
 // MongoDB document type with required _id
-export type User = WithId<BaseUser>;
+type User = WithId<BaseUser>;
 
 // Extend Express User type
 declare global {
