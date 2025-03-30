@@ -1,7 +1,3 @@
-/* eslint-disable */
-// @ts-nocheck
-// This file is part of the future workout feature and is temporarily disabled
-
 import { z } from "zod";
 import { Schema } from "mongoose";
 import { ObjectId } from "mongodb";

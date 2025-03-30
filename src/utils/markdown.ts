@@ -19,7 +19,7 @@
  * const markdown = formatWodToMarkdown(wodJson);
  * console.log(markdown);
  */
-import { WorkoutPlanDB } from "../future/types/workout.types";
+import { WorkoutPlanDB } from "../types/workout.types";
 
 interface ScalingOption {
   description?: string;
