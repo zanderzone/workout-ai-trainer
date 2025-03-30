@@ -31,7 +31,7 @@ passport.use(new GoogleStrategy(
         clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
         callbackURL: "/api/auth/google/callback",
     },
-    async (accessToken, refreshToken, profile, done) => {
+    async (_accessToken, _refreshToken, profile, done) => {
         try {
             const userCollection: Collection<User> = (global as any).userCollection;
             if (!userCollection) {
@@ -44,8 +44,10 @@ passport.use(new GoogleStrategy(
             if (!user) {
                 // Create new user
                 const newUser: BaseUser = {
+                    userId: profile.id,
                     providerId: profile.id,
                     email: profile.emails?.[0].value!,
+                    emailVerified: true,
                     provider: 'google',
                     firstName: profile.name?.givenName,
                     lastName: profile.name?.familyName,
@@ -75,7 +77,7 @@ passport.use(new AppleStrategy(
         callbackURL: appleConfig.callbackUrl!,
         passReqToCallback: true
     } as AppleStrategyOptions,
-    async (req, accessToken, refreshToken, idToken, profile, done) => {
+    async (_req, _accessToken, _refreshToken, idToken, profile, done) => {
         try {
             const userCollection: Collection<User> = (global as any).userCollection;
             if (!userCollection) {
@@ -91,8 +93,10 @@ passport.use(new AppleStrategy(
             if (!user) {
                 // Create new user
                 const newUser: BaseUser = {
+                    userId: profile.id,
                     providerId: profile.id,
                     email,
+                    emailVerified: true,
                     provider: 'apple',
                     firstName: profile.name?.firstName,
                     lastName: profile.name?.lastName,
@@ -143,6 +147,6 @@ export function authenticateJWT(req: Request, res: Response, next: NextFunction)
     jwt.verify(token, process.env.JWT_SECRET!, (err, decoded) => {
         if (err) return res.status(403).json({ error: "Invalid token" });
         (req as any).user = decoded;
-        next();
+        return next();
     });
 }
