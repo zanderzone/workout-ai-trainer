@@ -1,15 +1,15 @@
 import { Application } from "express";
-import { MongoClient, Db, Collection, ObjectId, MongoClientOptions, Document } from "mongodb";
-// import { workoutResultSchema, WorkoutPlanDB, workoutPlanDBSchema, WorkoutResult } from "../types/workout.types";
-import { wodValidationSchema, WodType, wodMongoSchema } from "../types/wod.types";
+import { MongoClient, Db, Collection, MongoClientOptions, Document } from "mongodb";
+import { WodType } from "../types/wod.types";
 import { User } from "../types/user.types";
-import { UserProfile, userProfileSchema, userProfileMongoSchema } from "../types/userProfile.types";
-import { WorkoutOptions, WorkoutOptionsSchema } from "../types/workoutOptions.types";
+import { FitnessProfile } from "../types/fitnessProfile.types";
+import { WorkoutRequest } from "../types/workoutRequest.types";
 import { DatabaseConnectionError, logDatabaseError } from "../errors";
-import { UserProfileService } from "./userProfile.service";
-import { WorkoutOptionsService } from "./workoutOptions.service";
+import { FitnessProfileService } from "./fitnessProfile.service";
+import { WorkoutRequestService } from "./workoutRequest.service";
 import { WodService } from "./wod.service";
-// import { WorkoutService } from "./workout.service";
+import { UserService } from "./user.service";
+import { OpenAIWorkoutAdapter } from "../adapters/openai-workout.adapter";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -17,10 +17,10 @@ dotenv.config();
 const MONGO_URI: string = process.env.MONGO_URI || "mongodb://localhost:27017/workouts_ai_trainer";
 
 // Service instances
-let userProfileService: UserProfileService;
-let workoutOptionsService: WorkoutOptionsService;
+let fitnessProfileService: FitnessProfileService;
+let workoutRequestService: WorkoutRequestService;
 let wodService: WodService;
-// let workoutService: WorkoutService;
+let userService: UserService;
 
 // Database connection manager
 export class DatabaseManager {
@@ -49,13 +49,34 @@ export class DatabaseManager {
   private static setupConnectionMonitoring(): void {
     if (!this.client) return;
 
-    this.client.on('close', () => {
-      logDatabaseError(new DatabaseConnectionError('MongoDB connection closed'), 'connection');
+    this.client.on('connected', () => {
+      console.log('MongoDB connected');
     });
 
     this.client.on('error', (error: Error) => {
-      logDatabaseError(error, 'connection');
+      console.error('MongoDB connection error:', error);
+      logDatabaseError(error, 'connectionError');
     });
+
+    this.client.on('timeout', (error: Error) => {
+      console.error('MongoDB connection timeout:', error);
+      logDatabaseError(error, 'connectionTimeout');
+    });
+
+    this.client.on('close', () => {
+      console.log('MongoDB connection closed');
+    });
+  }
+
+  private static shouldRetryConnection(error: unknown): boolean {
+    if (error instanceof Error) {
+      // Retry on network errors or server selection timeout
+      return error.message.includes('network') ||
+        error.message.includes('timeout') ||
+        error.message.includes('ECONNREFUSED') ||
+        error.message.includes('MongoServerSelectionError');
+    }
+    return false;
   }
 
   private static async connectWithRetry(): Promise<void> {
@@ -97,46 +118,6 @@ export class DatabaseManager {
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
-  }
-
-  private static shouldRetryConnection(error: unknown): boolean {
-    if (!error) return false;
-
-    // Network-related errors
-    const networkErrors = [
-      'ECONNREFUSED',
-      'ECONNRESET',
-      'ETIMEDOUT',
-      'ENOTFOUND',
-      'Connection timeout',
-      'Network unreachable'
-    ];
-
-    // MongoDB-specific transient errors
-    const mongoTransientErrors = [
-      'Topology was destroyed',
-      'Server selection timed out',
-      'Connection pool exhausted',
-      'Authentication failed'
-    ];
-
-    const errorMessage = error instanceof Error ? error.message.toLowerCase() : '';
-    const errorCode = (error as any).code || '';
-
-    return (
-      networkErrors.some(err =>
-        errorMessage.includes(err.toLowerCase()) ||
-        errorCode.includes(err)
-      ) ||
-      mongoTransientErrors.some(err =>
-        errorMessage.includes(err.toLowerCase())
-      ) ||
-      // Check for MongoDB specific error codes
-      ((error as any).name === 'MongoServerError' &&
-        ((error as any).code === 11600 || // InterruptedAtShutdown
-          (error as any).code === 11602 || // InterruptedDueToReplStateChange
-          (error as any).code === 13435))  // SocketException
-    );
   }
 
   public static async connect(): Promise<void> {
@@ -242,26 +223,30 @@ class CollectionInitializer {
       const wodCollection = db.collection<WodType>("wods");
       // const workoutCollection = db.collection<WorkoutPlanDB>("workouts");
       const userCollection = db.collection<User>("users");
-      const userProfileCollection = db.collection<UserProfile>("user_profiles");
-      const workoutOptionsCollection = db.collection<WorkoutOptions>("workout_options");
+      const fitnessProfileCollection = db.collection<FitnessProfile>("fitness_profiles");
+      const workoutRequestCollection = db.collection<WorkoutRequest>("workout_requests");
       // const workoutResultsCollection = db.collection<WorkoutResult>("workout_results");
 
       // Initialize services
-      userProfileService = new UserProfileService(userProfileCollection);
-      workoutOptionsService = new WorkoutOptionsService(workoutOptionsCollection);
-      wodService = new WodService(wodCollection);
+      const aiAdapter = new OpenAIWorkoutAdapter();
+      wodService = new WodService(wodCollection, aiAdapter);
+      userService = new UserService(userCollection);
+      fitnessProfileService = new FitnessProfileService(fitnessProfileCollection);
+      workoutRequestService = new WorkoutRequestService(workoutRequestCollection);
       // workoutService = new WorkoutService(workoutCollection);
 
       // Add to app.locals
-      app.locals.userProfileService = userProfileService;
-      app.locals.workoutOptionsService = workoutOptionsService;
+      app.locals.fitnessProfileService = fitnessProfileService;
+      app.locals.workoutRequestService = workoutRequestService;
       app.locals.wodService = wodService;
+      app.locals.userService = userService;
       // app.locals.workoutService = workoutService;
 
       // Add to global for passport strategies
-      (global as any).userProfileService = userProfileService;
-      (global as any).workoutOptionsService = workoutOptionsService;
+      (global as any).fitnessProfileService = fitnessProfileService;
+      (global as any).workoutRequestService = workoutRequestService;
       (global as any).wodService = wodService;
+      (global as any).userService = userService;
       // (global as any).workoutService = workoutService;
 
       // Create indexes
@@ -285,17 +270,25 @@ class CollectionInitializer {
           { email: 1 },
           { unique: true, name: "users_email_unique", background: true }
         ),
-
-        // User profile indexes
-        db.collection("user_profiles").createIndex(
+        db.collection("users").createIndex(
           { userId: 1 },
-          { unique: true, name: "user_profiles_userId_unique", background: true }
+          { unique: true, name: "users_userId_unique", background: true }
         ),
 
-        // Workout options indexes
-        db.collection("workout_options").createIndex(
+        // Fitness profile indexes
+        db.collection("fitness_profiles").createIndex(
           { userId: 1 },
-          { unique: true, name: "workout_options_userId_unique", background: true }
+          { unique: true, name: "fitness_profiles_userId_unique", background: true }
+        ),
+
+        // Workout request indexes
+        db.collection("workout_requests").createIndex(
+          { requestId: 1 },
+          { unique: true, name: "workout_requests_requestId_unique", background: true }
+        ),
+        db.collection("workout_requests").createIndex(
+          { userId: 1, createdAt: -1 },
+          { name: "workout_requests_userId_createdAt", background: true }
         ),
 
         // WOD indexes
@@ -345,4 +338,4 @@ export function getMongoClient(): MongoClient | null {
 }
 
 // Export services
-export { userProfileService, workoutOptionsService, wodService };
+export { fitnessProfileService, workoutRequestService, wodService, userService };
