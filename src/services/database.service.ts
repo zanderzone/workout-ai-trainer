@@ -141,28 +141,44 @@ export class DatabaseManager {
 
   public static async connect(): Promise<void> {
     try {
+      console.log('Attempting to connect to MongoDB at:', this.uri);
+      console.log('MongoDB connection options:', this.options);
+
       if (!this.client) {
+        console.log('Creating new MongoDB client');
         this.client = new MongoClient(this.uri, this.options);
         this.setupConnectionMonitoring();
       }
 
       // Check if already connected by attempting a ping
       try {
+        console.log('Checking existing connection with ping...');
         await this.client.db().command({ ping: 1 });
         console.log('Already connected to MongoDB');
         // Ensure database is set even if already connected
         if (!this.database) {
+          console.log('Setting database instance');
           this.database = this.client.db();
         }
         return;
-      } catch {
-        // Not connected, continue with connection
+      } catch (pingError) {
+        console.log('Not currently connected, attempting new connection');
       }
 
       await this.connectWithRetry();
       this.database = this.client.db();
       console.log('Connected to MongoDB successfully');
+
+      // Verify collections
+      const collections = await this.database.listCollections().toArray();
+      console.log('Available collections:', collections.map(c => c.name));
+
     } catch (error) {
+      console.error('MongoDB connection error:', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        uri: this.uri.replace(/mongodb:\/\/[^@]*@/, 'mongodb://[hidden]@')
+      });
       logDatabaseError(error, 'connect');
       throw new DatabaseConnectionError("Failed to connect to MongoDB", error);
     }

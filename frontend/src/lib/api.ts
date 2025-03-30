@@ -20,10 +20,27 @@ export async function isAppleSignInEnabled(): Promise<boolean> {
 }
 
 export async function checkAuthStatus() {
-    const response = await fetch(`${API_BASE_URL}/api/auth/status`, {
-        credentials: 'include',
-    });
-    return response.json();
+    const token = localStorage.getItem('token');
+    if (!token) {
+        return { isAuthenticated: false, user: null };
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/status`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            return { isAuthenticated: false, user: null };
+        }
+
+        return response.json();
+    } catch (error) {
+        console.error('Error checking auth status:', error);
+        return { isAuthenticated: false, user: null };
+    }
 }
 
 export async function completeProfile(data: {

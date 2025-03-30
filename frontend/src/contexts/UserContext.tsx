@@ -1,55 +1,120 @@
+'use client';
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import jwt_decode from 'jwt-decode';
+import { checkAuthStatus } from '@/lib/api';
 
 interface User {
-    providerId: string;
-    email: string;
-    provider: 'google' | 'apple';
-    firstName?: string;
-    lastName?: string;
-    displayName?: string;
-    emailVerified?: boolean;
+  _id: string;
+  email: string;
+  provider: string;
+  providerId: string;
+  name?: string;
+  isRegistrationComplete: boolean;
+  createdAt: string;
+  updatedAt: string;
+  preferences?: {
+    workoutTime?: string;
+    workoutDuration?: string;
+    notifications?: {
+      email: boolean;
+      reminders: boolean;
+    };
+  };
 }
 
 interface UserContextType {
-    user: User | null;
-    setUser: (user: User | null) => void;
-    isLoading: boolean;
+  user: User | null;
+  loading: boolean;
+  updateUser: (data: Partial<User>) => void;
+  checkSession: () => Promise<boolean>;
+  logout: () => void;
 }
 
-const UserContext = createContext<UserContextType>({
-    user: null,
-    setUser: () => {},
-    isLoading: true
-});
+const UserContext = createContext<UserContextType | undefined>(undefined);
 
-export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+export function UserProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [lastChecked, setLastChecked] = useState<number>(0);
 
-    useEffect(() => {
-        const initializeUser = () => {
-            const token = localStorage.getItem('token');
-            if (token) {
-                try {
-                    const decoded = jwt_decode<User>(token);
-                    setUser(decoded);
-                } catch (error) {
-                    console.error('Error decoding token:', error);
-                    localStorage.removeItem('token');
-                }
-            }
-            setIsLoading(false);
-        };
+  const checkSession = async (force: boolean = false) => {
+    try {
+      const now = Date.now();
+      // Only check if forced or if last check was more than 4.5 minutes ago
+      if (!force && lastChecked && now - lastChecked < 4.5 * 60 * 1000) {
+        return !!user;
+      }
 
-        initializeUser();
-    }, []);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setUser(null);
+        return false;
+      }
 
-    return (
-        <UserContext.Provider value={{ user, setUser, isLoading }}>
-            {children}
-        </UserContext.Provider>
-    );
-};
+      const response = await checkAuthStatus();
+      setLastChecked(now);
 
-export const useUser = () => useContext(UserContext); 
+      if (!response.isAuthenticated || !response.user) {
+        setUser(null);
+        localStorage.removeItem('token');
+        return false;
+      }
+
+      setUser(response.user);
+      return true;
+    } catch (error) {
+      console.error('Error checking session:', error);
+      setUser(null);
+      localStorage.removeItem('token');
+      return false;
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    setUser(null);
+    setLastChecked(0);
+  };
+
+  // Initial session check
+  useEffect(() => {
+    const initializeUser = async () => {
+      try {
+        await checkSession(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeUser();
+  }, []);
+
+  // Periodic session check (every 5 minutes)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (user) {
+        checkSession();
+      }
+    }, 5 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [user]);
+
+  const updateUser = (data: Partial<User>) => {
+    setUser((prev) => (prev ? { ...prev, ...data } : null));
+  };
+
+  return (
+    <UserContext.Provider value={{ user, loading, updateUser, checkSession, logout }}>
+      {children}
+    </UserContext.Provider>
+  );
+}
+
+export function useUser() {
+  const context = useContext(UserContext);
+  if (context === undefined) {
+    throw new Error('useUser must be used within a UserProvider');
+  }
+  return context;
+} 

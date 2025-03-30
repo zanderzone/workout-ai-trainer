@@ -6,6 +6,14 @@ import { useState, useEffect } from "react";
 import { completeProfile } from "@/lib/api";
 import { useRouter, useSearchParams } from "next/navigation";
 import { EquipmentInput } from "@/components/ui/equipment-input";
+import jwt_decode from 'jwt-decode';
+
+interface DecodedToken {
+  name?: string;
+  email?: string;
+  sub?: string;
+  exp?: number;
+}
 
 type FormData = {
   ageRange: string;
@@ -52,6 +60,9 @@ const GYM_LOCATIONS = [
 export default function RegisterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [userName, setUserName] = useState<string>('');
+  const [userEmail, setUserEmail] = useState<string>('');
+  const [tokenError, setTokenError] = useState<string>('');
   const [formData, setFormData] = useState<FormData>({
     ageRange: '',
     sex: '',
@@ -67,12 +78,50 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Check if we have a token
-    const token = searchParams.get('token');
-    if (!token) {
-      // No token means they didn't come from OAuth, redirect to login
-      router.push('/login');
-    }
+    const validateAndDecodeToken = () => {
+      const token = searchParams.get('token');
+      
+      if (!token) {
+        setTokenError('No authentication token found. Please log in again.');
+        router.push('/login');
+        return;
+      }
+
+      try {
+        const decoded = jwt_decode<DecodedToken>(token);
+        
+        // Check if token is expired
+        if (decoded.exp && decoded.exp * 1000 < Date.now()) {
+          setTokenError('Your session has expired. Please log in again.');
+          router.push('/login');
+          return;
+        }
+
+        // Validate required fields
+        if (!decoded.name) {
+          console.warn('Token missing user name');
+        } else {
+          setUserName(decoded.name);
+        }
+
+        if (!decoded.email) {
+          console.warn('Token missing user email');
+        } else {
+          setUserEmail(decoded.email);
+        }
+
+        if (!decoded.sub) {
+          console.warn('Token missing user ID');
+        }
+
+      } catch (error) {
+        console.error('Error decoding token:', error);
+        setTokenError('Invalid authentication token. Please log in again.');
+        router.push('/login');
+      }
+    };
+
+    validateAndDecodeToken();
   }, [router, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -84,6 +133,12 @@ export default function RegisterPage() {
       const token = searchParams.get('token');
       if (!token) {
         throw new Error('No authentication token found');
+      }
+
+      // Validate token hasn't expired
+      const decoded = jwt_decode<DecodedToken>(token);
+      if (decoded.exp && decoded.exp * 1000 < Date.now()) {
+        throw new Error('Session expired');
       }
 
       await completeProfile({
@@ -101,7 +156,13 @@ export default function RegisterPage() {
       localStorage.setItem('token', token);
       router.push('/dashboard');
     } catch (err) {
-      setError('Failed to complete profile. Please try again.');
+      if (err instanceof Error) {
+        setError(err.message === 'Session expired' 
+          ? 'Your session has expired. Please log in again.'
+          : 'Failed to complete profile. Please try again.');
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -148,7 +209,29 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="sm:mx-auto sm:w-full sm:max-w-2xl">
-        <h2 className="text-center text-3xl font-bold text-gray-900">Complete Your Profile</h2>
+        {tokenError ? (
+          <div className="text-center space-y-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-red-600">{tokenError}</p>
+              <Link 
+                href="/login" 
+                className="mt-2 inline-block text-sm text-red-600 hover:text-red-800"
+              >
+                Return to login
+              </Link>
+            </div>
+          </div>
+        ) : userName ? (
+          <div className="text-center space-y-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-500 text-white text-3xl font-bold mb-4">
+              {userName.charAt(0)}
+            </div>
+            <h2 className="text-3xl font-bold text-gray-900">Welcome, {userName}!</h2>
+            <p className="text-gray-600">Let's complete your profile to personalize your workout experience</p>
+          </div>
+        ) : (
+          <h2 className="text-center text-3xl font-bold text-gray-900">Complete Your Profile</h2>
+        )}
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-2xl">
