@@ -3,6 +3,8 @@ import { warmupCooldownSchema } from "../future/types/workout.types";
 import { Schema } from "mongoose";
 import { ObjectId } from "mongodb";
 import { enhancedWodValidationSchema } from "../validation/workout.validation";
+import { FitnessProfile } from "./fitnessProfile.types";
+import { WorkoutRequest } from "./workoutRequest.types";
 
 // Base exercise schema used across different parts of the WOD
 const exerciseSchema = z.object({
@@ -66,7 +68,7 @@ export const aiWodResponseSchema = z.object({
 
 // Database WOD type
 export type WodType = {
-    _id?: ObjectId | string;
+    _id?: ObjectId;
     wodId: string;
     userId: string;
     description: string;
@@ -253,3 +255,15 @@ export type AiWodSchema = z.infer<typeof aiWodResponseSchema>;
 export type WodDay = z.infer<typeof wodSchema>;
 
 export { wodValidationSchema, wodMongoSchema, exerciseSchema };
+
+export interface WodResponse {
+    wod: WodType;
+}
+
+export interface WodAIAdapter {
+    generateWod(
+        userId: string,
+        fitnessProfile?: FitnessProfile,
+        workoutRequest?: WorkoutRequest
+    ): Promise<WodResponse>;
+}

@@ -1,10 +1,11 @@
 import { AiWodSchema } from "./wod.types";
-import { WorkoutOptions } from "./workoutOptions.types";
+import { FitnessProfile } from "./fitnessProfile.types";
+import { WorkoutRequest } from "./workoutRequest.types";
 
 export interface WodAIAdapter {
     generateWod(
         userId: string,
-        userProfile: any,
-        workoutOpts?: WorkoutOptions | null
+        fitnessProfile?: FitnessProfile,
+        workoutRequest?: WorkoutRequest
     ): Promise<{ wod: AiWodSchema }>;
 }

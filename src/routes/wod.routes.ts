@@ -9,7 +9,7 @@ const router = express.Router();
 router.use(authenticateJWT);
 
 // WOD routes
-router.post('/', asyncHandler(wodController.createWod));
+router.post('/', asyncHandler(wodController.generateWod));
 router.get('/:id', asyncHandler(wodController.getWod));
 
 export default router;

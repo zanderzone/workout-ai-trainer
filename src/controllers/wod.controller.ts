@@ -2,111 +2,128 @@ import { getWodGenerator } from "../services/wod.service";
 import { Request, Response } from "express";
 import { Collection, ObjectId } from "mongodb";
 import { z } from "zod";
-import { WorkoutOptions } from "../types/workoutOptions.types";
-import { UserProfile } from "../types/userProfile.types";
 import { v4 as uuidv4 } from 'uuid';
-import { WodService } from "../services/wod.service";
-import { formatOpenAIErrorResponse } from "../errors/openai";
+import { formatOpenAIErrorResponse, OpenAIRateLimitError } from "../errors/openai";
 import { handleOpenAIError } from "../errors/openai";
-import { enhancedWorkoutOptionsSchema, enhancedWodValidationSchema } from "../validation/workout.validation";
-import { AiWodSchema } from "../types/wod.types";
+import { enhancedWodValidationSchema } from "../validation/workout.validation";
+import { WodType } from "../types/wod.types";
 
 // Request validation schema based on testWodGeneration.ts parameters
 const createWodRequestSchema = z.object({
     userId: z.string().min(1, "User ID is required"),
-    userProfile: z.object({
-        userId: z.string().optional(),
+    fitnessProfile: z.object({
+        userId: z.string(),
         ageRange: z.enum(["18-24", "25-34", "35-44", "45-54", "55+"]).optional(),
         sex: z.enum(["male", "female", "other"]).optional(),
-        fitnessLevel: z.enum(["beginner", "intermediate", "advanced"]).optional(),
-        goals: z.array(z.string()).optional(),
+        fitnessLevel: z.enum(["beginner", "intermediate", "advanced"]),
+        goals: z.array(z.enum([
+            "weight loss",
+            "muscle gain",
+            "strength",
+            "endurance",
+            "power",
+            "flexibility",
+            "general fitness"
+        ])),
         injuriesOrLimitations: z.array(z.string()).optional(),
-        preferredWorkoutDays: z.array(z.string()).optional(),
-        equipmentAvailable: z.array(z.string()).optional()
+        availableEquipment: z.array(z.string()),
+        preferredTrainingDays: z.array(z.enum([
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday"
+        ])).optional(),
+        preferredWorkoutDuration: z.enum(["short", "medium", "long"]).optional(),
+        locationPreference: z.enum([
+            "gym",
+            "home",
+            "park",
+            "indoor",
+            "outdoor",
+            "both"
+        ]).optional(),
+        createdAt: z.date(),
+        updatedAt: z.date()
     }).optional(),
-    workoutOptions: enhancedWorkoutOptionsSchema.optional()
+    workoutRequest: z.object({
+        userDescription: z.string().max(500).optional(),
+        scalingPreference: z.string().optional(),
+        includeScalingOptions: z.boolean().optional(),
+        totalAvailableTime: z.number().int().positive().optional(),
+        workoutPlanDuration: z.number().int().positive().optional(),
+        workoutFocus: z.enum([
+            "Strength",
+            "Conditioning",
+            "Strength & Conditioning",
+            "Mobility",
+            "Endurance"
+        ]).optional(),
+        includeWarmups: z.boolean().optional(),
+        includeAlternateMovements: z.boolean().optional(),
+        includeCooldown: z.boolean().optional(),
+        includeRestDays: z.boolean().optional(),
+        includeBenchmarkWorkouts: z.boolean().optional(),
+        outdoorWorkout: z.boolean().optional(),
+        periodization: z.enum([
+            "concurrent",
+            "linear",
+            "undulating"
+        ]).optional(),
+        currentWeather: z.enum([
+            "rainy",
+            "sunny",
+            "cloudy",
+            "snowy",
+            "indoor"
+        ]).optional(),
+        includeExercises: z.array(z.string()).optional(),
+        excludeExercises: z.array(z.string()).optional(),
+        wodRequestTime: z.date().optional()
+    }).optional()
 });
 
-interface OpenAIError {
-    response?: {
-        status: number;
-    };
-}
-
-const wodController = {
-    async createWod(req: Request, res: Response): Promise<void> {
+export const wodController = {
+    generateWod: async (req: Request, res: Response) => {
         try {
-            // Validate request body
-            const validatedData = createWodRequestSchema.parse(req.body);
-            const { userId, userProfile, workoutOptions } = validatedData;
+            const { userId, fitnessProfile, workoutRequest } = createWodRequestSchema.parse(req.body);
+            const wodCollection: Collection<WodType> = req.app.locals.wodCollection;
 
-            // Check database connection
-            const wodCollection: Collection = req.app.locals.wodCollection;
             if (!wodCollection) {
                 throw new Error('Database connection not initialized');
             }
 
-            // Generate and save WOD
-            const workoutGenerator = getWodGenerator();
+            const wodService = getWodGenerator(wodCollection);
 
-            // Validate userId consistency if workoutOptions is provided
-            if (workoutOptions?.userId && workoutOptions.userId !== userId) {
-                throw new Error('User ID mismatch: provided userId does not match workoutOptions.userId');
-            }
-
-            const response = await workoutGenerator.generateWod(
-                userId,
-                userProfile || {}, // Provide empty object if userProfile is not provided
-                workoutOptions ? { ...workoutOptions, userId } : { userId } // Ensure consistent userId
-            );
-
-            // Add required fields before validation
-            const wodWithMetadata = {
-                ...response.wod.wod,
-                wodId: uuidv4(),
-                userId,
-                description: response.wod.description,
+            // Add createdAt and updatedAt to fitnessProfile if it exists
+            const profileWithDates = fitnessProfile ? {
+                ...fitnessProfile,
                 createdAt: new Date(),
                 updatedAt: new Date()
-            };
+            } : undefined;
 
-            // Validate generated WOD against enhanced schema
-            const validatedWod = enhancedWodValidationSchema.parse(wodWithMetadata);
+            // Add required fields to workoutRequest if it exists
+            const requestWithMetadata = workoutRequest ? {
+                ...workoutRequest,
+                requestId: uuidv4(),
+                userId,
+                wodRequestTime: workoutRequest.wodRequestTime || new Date(),
+                createdAt: new Date(),
+                updatedAt: new Date()
+            } : undefined;
 
-            // Convert string _id to ObjectId if present
-            const documentToInsert = {
-                ...validatedWod,
-                _id: validatedWod._id ? new ObjectId(validatedWod._id) : undefined
-            };
+            // Generate WOD using the new types
+            const result = await wodService.generateWod(userId, profileWithDates, requestWithMetadata);
 
-            const result = await wodCollection.insertOne(documentToInsert);
-
-            if (!result.acknowledged) {
-                throw new Error('Failed to save WOD to database');
-            }
-
-            res.status(201).json(validatedWod);
-
+            res.json(result);
         } catch (error) {
-            console.error("Error in createWod:", error);
-
-            if (error instanceof z.ZodError) {
-                res.status(400).json({
-                    error: 'Invalid request data',
-                    details: error.errors.map(err => ({
-                        path: err.path.join('.'),
-                        message: err.message
-                    }))
-                });
-                return;
+            if (error instanceof OpenAIRateLimitError) {
+                res.status(429).json(formatOpenAIErrorResponse(error));
+            } else {
+                handleOpenAIError(error);
             }
-
-            // Handle OpenAI errors
-            const errorResponse = formatOpenAIErrorResponse(error);
-            res.status(errorResponse.status).json({
-                error: errorResponse.message,
-                details: errorResponse.error
-            });
         }
     },
 
@@ -114,20 +131,23 @@ const wodController = {
         const { id } = req.params;
 
         try {
-            const wodCollection: Collection = req.app.locals.wodCollection;
+            const wodCollection: Collection<WodType> = req.app.locals.wodCollection;
             if (!wodCollection) {
                 throw new Error('Database connection not initialized');
             }
 
+            const wodService = getWodGenerator(wodCollection);
+
             // Try to find by wodId first (UUID)
-            let wod = await wodCollection.findOne({ wodId: id });
+            let wod = await wodService.getByWodId(id);
 
             // If not found, try to find by _id (ObjectId)
             if (!wod) {
                 try {
-                    wod = await wodCollection.findOne({
-                        _id: new ObjectId(id)
-                    });
+                    const doc = await wodCollection.findOne({ _id: new ObjectId(id) });
+                    if (doc) {
+                        wod = doc as WodType;
+                    }
                 } catch (error) {
                     // If ObjectId conversion fails, it's an invalid ID
                     res.status(400).json({ error: 'Invalid WOD ID format' });
