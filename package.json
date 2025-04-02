@@ -20,9 +20,13 @@
     "test:auth-all": "npm run test:auth && npm run test:auth-errors && npm run test:auth-middleware",
     "test:auth-with-server": "start-server-and-test dev http://localhost:3000 test:auth",
     "test:wod": "start-server-and-test dev http://localhost:3000/health 'npx ts-node -P scripts/tsconfig.json scripts/test/wod-endpoint.ts'",
+    "test:wod-generation": "node --no-deprecation -r ts-node/register scripts/testWodGeneration.ts",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e && npm run test:auth-all && npm run test:wod",
     "test:oauth": "ts-node -P scripts/tsconfig.json scripts/test/oauth-flow.ts",
-    "test:oauth-with-server": "start-server-and-test dev http://localhost:3000/health test:oauth"
+    "test:oauth-with-server": "start-server-and-test dev http://localhost:3000/health test:oauth",
+    "generate:wod": "ts-node scripts/generate_wod.ts",
+    "generate:samples": "ts-node src/scripts/sample-wod-generation.ts",
+    "generate-home-gym-wod": "ts-node src/scripts/generate-home-gym-wod.ts"
   },
   "repository": {
     "type": "git",
@@ -44,6 +48,7 @@
     "@types/node": "^22.13.1",
     "@types/pg": "^8.11.11",
     "@types/supertest": "^6.0.2",
+    "@types/uuid": "^10.0.0",
     "axios": "^1.8.3",
     "cross-env": "^7.0.3",
     "mongodb-memory-server": "^10.1.3",
@@ -66,7 +71,6 @@
     "@types/passport": "^1.0.17",
     "@types/passport-apple": "^2.0.3",
     "@types/passport-google-oauth20": "^2.0.16",
-    "@types/uuid": "^10.0.0",
     "connect-mongo": "^5.1.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",

@@ -13,7 +13,7 @@ router.get('/protected', authenticateJWT, asyncHandler(async (req, res) => {
 }));
 
 // Test route that doesn't require authentication
-router.get('/public', asyncHandler(async (req, res) => {
+router.get('/public', asyncHandler(async (_req, res) => {
     res.json({
         message: 'Public route accessed successfully'
     });

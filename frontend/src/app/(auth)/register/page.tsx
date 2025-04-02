@@ -16,26 +16,71 @@ interface DecodedToken {
 }
 
 type FormData = {
-  ageRange: string;
-  sex: string;
-  fitnessLevel: string;
-  goals: string[];
-  injuriesOrLimitations: string[];
-  workoutDuration: string;
-  equipment: string[];
-  gymLocation: string;
-  totalAvailableTime: string;
+  ageRange?: "18-24" | "25-34" | "35-44" | "45-54" | "55+";
+  sex?: "male" | "female" | "other";
+  fitnessLevel: "beginner" | "intermediate" | "advanced";
+  goals: Array<"weight loss" | "muscle gain" | "strength" | "endurance" | "power" | "flexibility" | "general fitness">;
+  injuriesOrLimitations?: string[];
+  availableEquipment: string[];
+  preferredTrainingDays?: Array<"Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday">;
+  preferredWorkoutDuration?: "short" | "medium" | "long";
+  locationPreference?: "gym" | "home" | "park" | "indoor" | "outdoor" | "both";
 };
 
 const FITNESS_GOALS = [
-  "Strength",
-  "Endurance",
-  "Flexibility",
-  "Weight Loss",
-  "Muscle Gain",
-  "General Fitness",
-  "Sports Performance"
-];
+  "weight loss",
+  "muscle gain",
+  "strength",
+  "endurance",
+  "power",
+  "flexibility",
+  "general fitness"
+] as const;
+
+const FITNESS_LEVELS = [
+  "beginner",
+  "intermediate",
+  "advanced"
+] as const;
+
+const AGE_RANGES = [
+  "18-24",
+  "25-34",
+  "35-44",
+  "45-54",
+  "55+"
+] as const;
+
+const SEX_OPTIONS = [
+  "male",
+  "female",
+  "other"
+] as const;
+
+const TRAINING_DAYS = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday"
+] as const;
+
+const WORKOUT_DURATIONS = [
+  "short",
+  "medium",
+  "long"
+] as const;
+
+const LOCATION_PREFERENCES = [
+  "gym",
+  "home",
+  "park",
+  "indoor",
+  "outdoor",
+  "both"
+] as const;
 
 const INJURY_CATEGORIES = [
   "Back",
@@ -46,7 +91,7 @@ const INJURY_CATEGORIES = [
   "Hip",
   "Neck",
   "None"
-];
+] as const;
 
 const GYM_LOCATIONS = [
   "CrossFit Gym",
@@ -64,18 +109,19 @@ export default function RegisterPage() {
   const [userEmail, setUserEmail] = useState<string>('');
   const [tokenError, setTokenError] = useState<string>('');
   const [formData, setFormData] = useState<FormData>({
-    ageRange: '',
-    sex: '',
-    fitnessLevel: '',
+    ageRange: undefined,
+    sex: undefined,
+    fitnessLevel: "beginner",
     goals: [],
     injuriesOrLimitations: [],
-    workoutDuration: '60 minutes',
-    equipment: [],
-    gymLocation: '',
-    totalAvailableTime: '60 minutes'
+    availableEquipment: [],
+    preferredTrainingDays: [],
+    preferredWorkoutDuration: "medium",
+    locationPreference: undefined
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [validationErrors, setValidationErrors] = useState<Partial<Record<keyof FormData, string>>>({});
 
   useEffect(() => {
     const validateAndDecodeToken = () => {
@@ -126,66 +172,58 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
     setError('');
+    setValidationErrors({});
+    setIsSubmitting(true);
 
     try {
-      const token = searchParams.get('token');
-      if (!token) {
-        throw new Error('No authentication token found');
+      // Validate form data
+      const { isValid, errors } = await validateProfile(formData);
+      if (!isValid) {
+        setValidationErrors(errors);
+        return;
       }
 
-      // Validate token hasn't expired
-      const decoded = jwt_decode<DecodedToken>(token);
-      if (decoded.exp && decoded.exp * 1000 < Date.now()) {
-        throw new Error('Session expired');
-      }
-
-      await completeProfile({
-        ageRange: formData.ageRange as "18-24" | "25-34" | "35-44" | "45-54" | "55+",
-        sex: formData.sex as "male" | "female" | "other",
-        fitnessLevel: formData.fitnessLevel as "beginner" | "intermediate" | "advanced",
-        goals: formData.goals,
-        injuriesOrLimitations: formData.injuriesOrLimitations,
-        workoutDuration: formData.workoutDuration,
-        equipment: formData.equipment,
-        gymLocation: formData.gymLocation
-      }, token);
-
-      // Store the token and redirect to dashboard
-      localStorage.setItem('token', token);
+      // Submit profile data
+      await completeProfile(formData);
+      
+      // Redirect to dashboard on success
       router.push('/dashboard');
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message === 'Session expired' 
-          ? 'Your session has expired. Please log in again.'
-          : 'Failed to complete profile. Please try again.');
-      } else {
-        setError('An unexpected error occurred. Please try again.');
-      }
+    } catch (error) {
+      console.error('Error submitting profile:', error);
+      setError(error instanceof Error ? error.message : 'Failed to complete profile');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    console.log(`Field ${name} changed to:`, value);
-    
-    const newFormData = {
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       [name]: value
-    };
-    setFormData(newFormData);
-    
-    // Debug validation
-    const isValid = Boolean(newFormData.sex && newFormData.ageRange && newFormData.fitnessLevel);
-    console.log('Current Form State:', {
-      sex: `"${newFormData.sex}"`,
-      ageRange: `"${newFormData.ageRange}"`,
-      fitnessLevel: `"${newFormData.fitnessLevel}"`,
-      isValid
-    });
+    }));
+    // Clear validation error when user starts typing
+    if (validationErrors[name as keyof FormData]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  const handleMultiSelect = (name: keyof FormData, value: string[]) => {
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    // Clear validation error when user makes a selection
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
   };
 
   // Add effect to monitor form state changes
@@ -198,271 +236,230 @@ export default function RegisterPage() {
     });
   }, [formData]);
 
-  const handleMultiSelect = (e: React.ChangeEvent<HTMLSelectElement>, field: keyof FormData) => {
-    const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
-    setFormData(prev => ({
-      ...prev,
-      [field]: selectedOptions
-    }));
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="sm:mx-auto sm:w-full sm:max-w-2xl">
-        {tokenError ? (
-          <div className="text-center space-y-4">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-600">{tokenError}</p>
-              <Link 
-                href="/login" 
-                className="mt-2 inline-block text-sm text-red-600 hover:text-red-800"
-              >
-                Return to login
-              </Link>
-            </div>
-          </div>
-        ) : userName ? (
-          <div className="text-center space-y-4">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-500 text-white text-3xl font-bold mb-4">
-              {userName.charAt(0)}
-            </div>
-            <h2 className="text-3xl font-bold text-gray-900">Welcome, {userName}!</h2>
-            <p className="text-gray-600">Let's complete your profile to personalize your workout experience</p>
-          </div>
-        ) : (
-          <h2 className="text-center text-3xl font-bold text-gray-900">Complete Your Profile</h2>
-        )}
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          Complete Your Profile
+        </h2>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          Please provide your fitness information to get personalized workouts
+        </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-2xl">
-        <div className="bg-white/80 py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Basic Information */}
-            <div className="space-y-6">
-              <h3 className="text-lg font-medium leading-6 text-gray-900 border-b pb-2">Basic Information</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="ageRange" className="block text-sm font-medium text-gray-800">
-                    Age Range
-                  </label>
-                  <select
-                    id="ageRange"
-                    name="ageRange"
-                    required
-                    value={formData.ageRange}
-                    onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  >
-                    <option value="">Select your age range</option>
-                    <option value="18-24">18-24</option>
-                    <option value="25-34">25-34</option>
-                    <option value="35-44">35-44</option>
-                    <option value="45-54">45-54</option>
-                    <option value="55+">55+</option>
-                  </select>
-                </div>
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
 
-                <div>
-                  <label htmlFor="sex" className="block text-sm font-medium text-gray-800">
-                    Sex
-                  </label>
-                  <select
-                    id="sex"
-                    name="sex"
-                    required
-                    value={formData.sex}
-                    onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  >
-                    <option value="">Select your sex</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="gymLocation" className="block text-sm font-medium text-gray-800">
-                    Gym Location
-                  </label>
-                  <select
-                    id="gymLocation"
-                    name="gymLocation"
-                    value={formData.gymLocation}
-                    onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  >
-                    <option value="">Select your gym location</option>
-                    {GYM_LOCATIONS.map(location => (
-                      <option key={location} value={location.toLowerCase()}>{location}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Age Range */}
+            <div>
+              <label htmlFor="ageRange" className="block text-sm font-medium text-gray-700">
+                Age Range
+              </label>
+              <select
+                id="ageRange"
+                name="ageRange"
+                value={formData.ageRange || ''}
+                onChange={handleInputChange}
+                className={`mt-1 block w-full rounded-md border ${
+                  validationErrors.ageRange ? 'border-red-300' : 'border-gray-300'
+                } bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary`}
+              >
+                <option value="">Select your age range</option>
+                {AGE_RANGES.map(range => (
+                  <option key={range} value={range}>{range}</option>
+                ))}
+              </select>
+              {validationErrors.ageRange && (
+                <p className="mt-1 text-sm text-red-600">{validationErrors.ageRange}</p>
+              )}
             </div>
 
-            {/* Fitness Information */}
-            <div className="space-y-6">
-              <h3 className="text-lg font-medium leading-6 text-gray-900 border-b pb-2">Fitness Information</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="fitnessLevel" className="block text-sm font-medium text-gray-800">
-                    Fitness Level
-                  </label>
-                  <select
-                    id="fitnessLevel"
-                    name="fitnessLevel"
-                    required
-                    value={formData.fitnessLevel}
-                    onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  >
-                    <option value="">Select your fitness level</option>
-                    <option value="beginner">Beginner</option>
-                    <option value="intermediate">Intermediate</option>
-                    <option value="advanced">Advanced</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="goals" className="block text-sm font-medium text-gray-800">
-                    Fitness Goals (Hold Ctrl/Cmd to select multiple)
-                  </label>
-                  <select
-                    id="goals"
-                    name="goals"
-                    multiple
-                    value={formData.goals}
-                    onChange={(e) => handleMultiSelect(e, 'goals')}
-                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary min-h-[120px]"
-                  >
-                    {FITNESS_GOALS.map(goal => (
-                      <option key={goal} value={goal.toLowerCase()}>{goal}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="injuriesOrLimitations" className="block text-sm font-medium text-gray-800">
-                    Injuries or Limitations (Optional)
-                  </label>
-                  <select
-                    id="injuriesOrLimitations"
-                    name="injuriesOrLimitations"
-                    multiple
-                    value={formData.injuriesOrLimitations}
-                    onChange={(e) => handleMultiSelect(e, 'injuriesOrLimitations')}
-                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary min-h-[120px]"
-                  >
-                    {INJURY_CATEGORIES.map(category => (
-                      <option key={category} value={category.toLowerCase()}>{category}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+            {/* Sex */}
+            <div>
+              <label htmlFor="sex" className="block text-sm font-medium text-gray-700">
+                Sex
+              </label>
+              <select
+                id="sex"
+                name="sex"
+                value={formData.sex || ''}
+                onChange={handleInputChange}
+                className={`mt-1 block w-full rounded-md border ${
+                  validationErrors.sex ? 'border-red-300' : 'border-gray-300'
+                } bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary`}
+              >
+                <option value="">Select your sex</option>
+                {SEX_OPTIONS.map(option => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+              {validationErrors.sex && (
+                <p className="mt-1 text-sm text-red-600">{validationErrors.sex}</p>
+              )}
             </div>
 
-            {/* Workout Preferences */}
-            <div className="space-y-6">
-              <h3 className="text-lg font-medium leading-6 text-gray-900 border-b pb-2">Workout Preferences</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="totalAvailableTime" className="block text-sm font-medium text-gray-800">
-                    Total Available Time
-                  </label>
-                  <p className="text-sm text-gray-500 mb-1">
-                    The total time you typically have available for your workout, including warmup, cooldown, and the main workout.
-                  </p>
-                  <select
-                    id="totalAvailableTime"
-                    name="totalAvailableTime"
-                    value={formData.totalAvailableTime}
-                    onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  >
-                    <option value="30 minutes">30 minutes</option>
-                    <option value="45 minutes">45 minutes</option>
-                    <option value="60 minutes">60 minutes</option>
-                    <option value="90 minutes">90 minutes</option>
-                    <option value="120 minutes">120 minutes</option>
-                  </select>
-                </div>
+            {/* Fitness Level */}
+            <div>
+              <label htmlFor="fitnessLevel" className="block text-sm font-medium text-gray-700">
+                Fitness Level
+              </label>
+              <select
+                id="fitnessLevel"
+                name="fitnessLevel"
+                required
+                value={formData.fitnessLevel}
+                onChange={handleInputChange}
+                className={`mt-1 block w-full rounded-md border ${
+                  validationErrors.fitnessLevel ? 'border-red-300' : 'border-gray-300'
+                } bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary`}
+              >
+                <option value="">Select your fitness level</option>
+                {FITNESS_LEVELS.map(level => (
+                  <option key={level} value={level}>{level}</option>
+                ))}
+              </select>
+              {validationErrors.fitnessLevel && (
+                <p className="mt-1 text-sm text-red-600">{validationErrors.fitnessLevel}</p>
+              )}
+            </div>
 
-                <div>
-                  <label htmlFor="workoutDuration" className="block text-sm font-medium text-gray-800">
-                    Preferred Main Workout Duration
-                  </label>
-                  <p className="text-sm text-gray-500 mb-1">
-                    The duration you prefer for the main workout portion (excluding warmup and cooldown).
-                  </p>
-                  <select
-                    id="workoutDuration"
-                    name="workoutDuration"
-                    value={formData.workoutDuration}
-                    onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  >
-                    <option value="15 minutes">15 minutes</option>
-                    <option value="20 minutes">20 minutes</option>
-                    <option value="30 minutes">30 minutes</option>
-                    <option value="45 minutes">45 minutes</option>
-                    <option value="60 minutes">60 minutes</option>
-                  </select>
-                </div>
-              </div>
+            {/* Goals */}
+            <div>
+              <label htmlFor="goals" className="block text-sm font-medium text-gray-700">
+                Fitness Goals
+              </label>
+              <select
+                id="goals"
+                name="goals"
+                multiple
+                required
+                value={formData.goals}
+                onChange={(e) => handleMultiSelect('goals', Array.from(e.target.selectedOptions, option => option.value))}
+                className={`mt-1 block w-full rounded-md border ${
+                  validationErrors.goals ? 'border-red-300' : 'border-gray-300'
+                } bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary min-h-[120px]`}
+              >
+                {FITNESS_GOALS.map(goal => (
+                  <option key={goal} value={goal}>{goal}</option>
+                ))}
+              </select>
+              {validationErrors.goals && (
+                <p className="mt-1 text-sm text-red-600">{validationErrors.goals}</p>
+              )}
             </div>
 
             {/* Equipment */}
-            <div className="space-y-6">
-              <h3 className="text-lg font-medium leading-6 text-gray-900 border-b pb-2">Available Equipment</h3>
-              
-              <div>
-                <label htmlFor="equipment" className="block text-sm font-medium text-gray-800">
-                  List your available equipment
-                </label>
-                <EquipmentInput
-                  value={formData.equipment}
-                  onChange={(value) => setFormData(prev => ({ ...prev, equipment: value }))}
-                  placeholder="Example: 45 lb barbell, 450 lbs in weightlifting bumper plates, pull up bar"
-                />
-              </div>
+            <div>
+              <label htmlFor="availableEquipment" className="block text-sm font-medium text-gray-700">
+                Available Equipment
+              </label>
+              <EquipmentInput
+                value={formData.availableEquipment}
+                onChange={(value) => handleMultiSelect('availableEquipment', value)}
+                error={validationErrors.availableEquipment}
+              />
             </div>
 
-            <div className="mt-6 flex gap-4">
-              <button
-                type="submit"
-                disabled={!formData.sex || !formData.ageRange || !formData.fitnessLevel}
-                onClick={() => {
-                  console.log('Submit Button State:', {
-                    sex: `"${formData.sex}"`,
-                    ageRange: `"${formData.ageRange}"`,
-                    fitnessLevel: `"${formData.fitnessLevel}"`,
-                    isDisabled: !formData.sex || !formData.ageRange || !formData.fitnessLevel
-                  });
-                }}
-                className={`flex-1 py-2 px-4 rounded-md text-white font-medium ${
-                  !formData.sex || !formData.ageRange || !formData.fitnessLevel
-                    ? 'bg-blue-300 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700'
-                }`}
+            {/* Training Days */}
+            <div>
+              <label htmlFor="preferredTrainingDays" className="block text-sm font-medium text-gray-700">
+                Preferred Training Days
+              </label>
+              <select
+                id="preferredTrainingDays"
+                name="preferredTrainingDays"
+                multiple
+                value={formData.preferredTrainingDays || []}
+                onChange={(e) => handleMultiSelect('preferredTrainingDays', Array.from(e.target.selectedOptions, option => option.value))}
+                className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary min-h-[120px]"
               >
-                {isSubmitting ? 'Submitting...' : 'Register'}
-              </button>
+                {TRAINING_DAYS.map(day => (
+                  <option key={day} value={day}>{day}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Workout Duration */}
+            <div>
+              <label htmlFor="preferredWorkoutDuration" className="block text-sm font-medium text-gray-700">
+                Preferred Workout Duration
+              </label>
+              <select
+                id="preferredWorkoutDuration"
+                name="preferredWorkoutDuration"
+                value={formData.preferredWorkoutDuration}
+                onChange={handleInputChange}
+                className={`mt-1 block w-full rounded-md border ${
+                  validationErrors.preferredWorkoutDuration ? 'border-red-300' : 'border-gray-300'
+                } bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary`}
+              >
+                {WORKOUT_DURATIONS.map(duration => (
+                  <option key={duration} value={duration}>{duration}</option>
+                ))}
+              </select>
+              {validationErrors.preferredWorkoutDuration && (
+                <p className="mt-1 text-sm text-red-600">{validationErrors.preferredWorkoutDuration}</p>
+              )}
+            </div>
+
+            {/* Location Preference */}
+            <div>
+              <label htmlFor="locationPreference" className="block text-sm font-medium text-gray-700">
+                Preferred Workout Location
+              </label>
+              <select
+                id="locationPreference"
+                name="locationPreference"
+                value={formData.locationPreference || ''}
+                onChange={handleInputChange}
+                className={`mt-1 block w-full rounded-md border ${
+                  validationErrors.locationPreference ? 'border-red-300' : 'border-gray-300'
+                } bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary`}
+              >
+                <option value="">Select your preferred location</option>
+                {LOCATION_PREFERENCES.map(location => (
+                  <option key={location} value={location}>{location}</option>
+                ))}
+              </select>
+              {validationErrors.locationPreference && (
+                <p className="mt-1 text-sm text-red-600">{validationErrors.locationPreference}</p>
+              )}
+            </div>
+
+            {/* Injuries or Limitations */}
+            <div>
+              <label htmlFor="injuriesOrLimitations" className="block text-sm font-medium text-gray-700">
+                Injuries or Limitations
+              </label>
+              <select
+                id="injuriesOrLimitations"
+                name="injuriesOrLimitations"
+                multiple
+                value={formData.injuriesOrLimitations || []}
+                onChange={(e) => handleMultiSelect('injuriesOrLimitations', Array.from(e.target.selectedOptions, option => option.value))}
+                className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary min-h-[120px]"
+              >
+                {INJURY_CATEGORIES.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
               <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.push('/dashboard')}
-                className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50"
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
               >
-                Cancel
+                {isSubmitting ? 'Submitting...' : 'Complete Profile'}
               </Button>
             </div>
-            {error && (
-              <p className="mt-2 text-sm text-red-600">{error}</p>
-            )}
           </form>
         </div>
       </div>

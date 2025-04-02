@@ -1,11 +1,8 @@
 import dotenv from 'dotenv';
 import path from 'path';
-import express from 'express';
-import cors from 'cors';
 import app from './app';
 import { connectDatabases, closeDatabaseConnection } from './services/database.service';
-import { DatabaseConnectionError, handleDatabaseError, logDatabaseError } from './errors/database';
-import wodRouter from './routes/wod.routes';
+import { handleDatabaseError, logDatabaseError } from './errors/database';
 
 // Load environment variables from .env file
 dotenv.config({ path: path.resolve(__dirname, '../.env') });

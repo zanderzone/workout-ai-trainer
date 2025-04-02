@@ -1,13 +1,77 @@
-import { config } from 'dotenv';
-import { readFileSync } from 'fs';
-import { join } from 'path';
-import crypto from 'crypto';
-import { APPLE_CONFIG_MESSAGES } from '../errors/messages';
+import dotenv from 'dotenv';
+import { z } from 'zod';
 import fs from 'fs';
-import path from 'path';
-import { AppleConfigError } from '../errors/oauth';
 
-config();
+// Load environment variables
+dotenv.config();
+
+// Debug log to check if .env file is loaded
+console.log('Environment variables loaded:', {
+  APPLE_CLIENT_ID: process.env.APPLE_CLIENT_ID ? 'present' : 'missing',
+  APPLE_SERVICES_ID: process.env.APPLE_SERVICES_ID ? 'present' : 'missing',
+  APPLE_TEAM_ID: process.env.APPLE_TEAM_ID ? 'present' : 'missing',
+  APPLE_KEY_ID: process.env.APPLE_KEY_ID ? 'present' : 'missing',
+  APPLE_PRIVATE_KEY_PATH: process.env.APPLE_PRIVATE_KEY_PATH ? 'present' : 'missing',
+  APPLE_CALLBACK_URL: process.env.APPLE_CALLBACK_URL ? 'present' : 'missing'
+});
+
+const appleConfigSchema = z.object({
+  clientId: z.string().min(1, 'APPLE_CLIENT_ID is required'),
+  servicesId: z.string().min(1, 'APPLE_SERVICES_ID is required'),
+  teamId: z.string().min(1, 'APPLE_TEAM_ID is required'),
+  keyId: z.string().min(1, 'APPLE_KEY_ID is required'),
+  privateKey: z.string().min(1, 'APPLE_PRIVATE_KEY_PATH is required'),
+  callbackUrl: z.string().min(1, 'APPLE_CALLBACK_URL is required'),
+  scope: z.tuple([z.literal('name'), z.literal('email')])
+});
+
+// Read private key from file
+let privateKey: string;
+try {
+  const keyPath = process.env.APPLE_PRIVATE_KEY_PATH;
+  if (!keyPath) {
+    throw new Error('APPLE_PRIVATE_KEY_PATH is required');
+  }
+  privateKey = fs.readFileSync(keyPath, 'utf8');
+} catch (error) {
+  throw new Error(`Failed to read private key from APPLE_PRIVATE_KEY_PATH: ${error.message}`);
+}
+
+const config = {
+  clientId: process.env.APPLE_CLIENT_ID,
+  servicesId: process.env.APPLE_SERVICES_ID,
+  teamId: process.env.APPLE_TEAM_ID,
+  keyId: process.env.APPLE_KEY_ID,
+  privateKey,
+  callbackUrl: process.env.APPLE_CALLBACK_URL,
+  scope: ['name', 'email'] as const
+};
+
+let appleConfig: z.infer<typeof appleConfigSchema>;
+
+try {
+  appleConfig = appleConfigSchema.parse(config);
+} catch (error) {
+  if (error instanceof z.ZodError) {
+    const missingVars = error.errors.map(err => {
+      const pathValue = err.path[0];
+      const envVar = `APPLE_${typeof pathValue === 'string'
+        ? pathValue.replace(/([A-Z])/g, '_$1').toUpperCase()
+        : pathValue}`;
+      return `${envVar} (${err.message})`;
+    }).join(', ');
+    throw new Error(
+      `Missing or invalid Apple Sign In configuration. Please check your environment variables:\n${missingVars}`
+    );
+  }
+  throw error;
+}
+
+export { appleConfig };
+
+export function generateState(): string {
+  return Math.random().toString(36).substring(7);
+}
 
 /**
  * Configuration interface for Apple Sign In
@@ -27,100 +91,4 @@ export interface AppleConfig {
   callbackUrl: string;
   /** OAuth scopes */
   scope: readonly ['name', 'email'];
-}
-
-/**
- * Loads the private key from the specified path
- * @param keyPath - Path to the private key file
- * @returns The private key content
- * @throws Error if the key cannot be loaded
- */
-function loadPrivateKey(keyPath: string): string {
-  try {
-    console.log('Loading private key from path:', keyPath);
-    const privateKey = readFileSync(keyPath, 'utf8');
-    console.log('Private key loaded successfully:', {
-      length: privateKey.length,
-      hasHeader: privateKey.includes('BEGIN PRIVATE KEY'),
-      hasFooter: privateKey.includes('END PRIVATE KEY'),
-      firstLine: privateKey.split('\n')[0]
-    });
-    return privateKey;
-  } catch (error) {
-    console.error('Error loading private key:', error);
-    throw new Error(`${APPLE_CONFIG_MESSAGES.INVALID_KEY_PATH} ${keyPath}`);
-  }
-}
-
-/**
- * Generates a secure random state parameter
- * @returns A secure random state string
- */
-export function generateState(): string {
-  return crypto.randomBytes(32).toString('hex');
-}
-
-/**
- * Loads and validates Apple Sign In configuration from environment variables
- * @returns The Apple Sign In configuration
- * @throws Error if required configuration is missing or invalid
- */
-export function loadAppleConfig(): AppleConfig {
-  const requiredEnvVars = {
-    APPLE_CLIENT_ID: process.env.APPLE_CLIENT_ID,
-    APPLE_SERVICES_ID: process.env.APPLE_SERVICES_ID,
-    APPLE_TEAM_ID: process.env.APPLE_TEAM_ID,
-    APPLE_KEY_ID: process.env.APPLE_KEY_ID,
-    APPLE_PRIVATE_KEY_PATH: process.env.APPLE_PRIVATE_KEY_PATH,
-    APPLE_CALLBACK_URL: process.env.APPLE_CALLBACK_URL
-  } as const;
-
-  // Log raw environment variables for debugging
-  console.log('Raw environment variables:', requiredEnvVars);
-
-  // Check for missing variables
-  const missingVars = Object.entries(requiredEnvVars)
-    .filter(([_, value]) => !value)
-    .map(([key]) => key);
-
-  if (missingVars.length > 0) {
-    throw new Error(`${APPLE_CONFIG_MESSAGES.MISSING_ENV} ${missingVars.join(', ')}`);
-  }
-
-  // Check for placeholder values
-  Object.entries(requiredEnvVars).forEach(([key, value]) => {
-    if (value?.includes('your-apple-')) {
-      throw new Error(`Environment variable ${key} contains placeholder value: ${value}`);
-    }
-  });
-
-  const privateKeyPath = process.env.APPLE_PRIVATE_KEY_PATH!;
-  if (!privateKeyPath) {
-    throw new Error(`${APPLE_CONFIG_MESSAGES.INVALID_KEY_PATH} ${privateKeyPath}`);
-  }
-
-  const config: AppleConfig = {
-    clientId: process.env.APPLE_CLIENT_ID!,
-    servicesId: process.env.APPLE_SERVICES_ID!,
-    teamId: process.env.APPLE_TEAM_ID!,
-    keyId: process.env.APPLE_KEY_ID!,
-    privateKey: loadPrivateKey(privateKeyPath),
-    callbackUrl: process.env.APPLE_CALLBACK_URL!,
-    scope: ['name', 'email']
-  };
-
-  // Log configuration details (excluding sensitive data)
-  console.log('Apple Sign In Configuration:', {
-    clientId: config.clientId,
-    servicesId: config.servicesId,
-    teamId: config.teamId,
-    keyId: config.keyId,
-    callbackUrl: config.callbackUrl,
-    privateKeyPresent: !!config.privateKey
-  });
-
-  return config;
-}
-
-// Export the configuration
-export const appleConfig = loadAppleConfig(); 
+} 

@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import { z } from "zod";
-import { UserProfile } from "../types/userProfile.types";
 import { ValidationError, NotFoundError, UnauthorizedError } from "../errors/base";
 import { DatabaseError } from "../errors/database";
 import jwt from 'jsonwebtoken';

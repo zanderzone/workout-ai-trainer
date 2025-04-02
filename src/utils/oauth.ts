@@ -3,8 +3,8 @@ import jwt from 'jsonwebtoken';
 import { googleConfig } from '../config/google.config';
 import { appleConfig } from '../config/apple.config';
 import debug from 'debug';
-import fs from 'fs';
-import path from 'path';
+import { AppleUserInfo } from '../types/apple.types';
+import { GoogleUserInfo } from '../types/google.types';
 
 // Create debuggers for different parts of the OAuth flow
 const debugGoogle = debug('oauth:google');
@@ -42,26 +42,6 @@ export interface GoogleTokenResponse {
 }
 
 /**
- * User information from Google's userinfo endpoint
- */
-export interface GoogleUserInfo {
-    /** Google user ID */
-    id: string;
-    /** User's email address */
-    email: string;
-    /** Whether the email is verified */
-    verified_email: boolean;
-    /** User's full name */
-    name?: string;
-    /** User's given name */
-    given_name?: string;
-    /** User's family name */
-    family_name?: string;
-    /** URL to user's profile picture */
-    picture?: string;
-}
-
-/**
  * Response from Apple's token endpoint
  */
 export interface AppleTokenResponse {
@@ -75,23 +55,6 @@ export interface AppleTokenResponse {
     refresh_token: string;
     /** OpenID Connect ID token */
     id_token: string;
-}
-
-/**
- * User information decoded from Apple's ID token
- */
-export interface AppleUserInfo {
-    /** Unique identifier for the user */
-    sub: string;
-    /** User's email address */
-    email: string;
-    /** Whether the email is verified */
-    email_verified: boolean;
-    /** User's name information */
-    name?: {
-        firstName: string;
-        lastName: string;
-    };
 }
 
 /**
@@ -421,33 +384,6 @@ async function generateAppleClientSecret(): Promise<string> {
         throw new Error(`Failed to generate Apple client secret: ${error.message}`);
     }
 }
-
-// async function generateAppleClientSecret(): Promise<string> {
-//     try {
-//         // Read private key from file path
-//         const privateKeyPath = process.env.APPLE_PRIVATE_KEY_PATH;
-//         if (!privateKeyPath) {
-//             throw new Error('APPLE_PRIVATE_KEY_PATH environment variable is not set');
-//         }
-
-//         const privateKey = fs.readFileSync(privateKeyPath, 'utf8');
-
-//         // Create the client secret (a JWT)
-//         const clientSecret = jwt.sign({}, privateKey, {
-//             algorithm: 'ES256',
-//             expiresIn: '1h',
-//             audience: 'https://appleid.apple.com',
-//             issuer: appleConfig.teamId,
-//             subject: appleConfig.clientId,
-//             keyid: appleConfig.keyId
-//         });
-
-//         return clientSecret;
-//     } catch (error) {
-//         debugApple('Error generating Apple client secret: %O', error);
-//         throw new Error('Failed to generate Apple client secret');
-//     }
-// }
 
 /**
  * Checks if a token is expiring soon

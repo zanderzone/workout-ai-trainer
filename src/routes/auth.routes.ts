@@ -13,7 +13,7 @@ router.get('/google/callback', authController.googleCallback);
 // Apple OAuth routes
 router.get('/apple', authController.appleAuth);
 // Handle preflight requests for Apple callback
-router.options('/apple/callback', (req, res) => {
+router.options('/apple/callback', (_, res) => {
     res.header('Access-Control-Allow-Origin', 'https://appleid.apple.com');
     res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');

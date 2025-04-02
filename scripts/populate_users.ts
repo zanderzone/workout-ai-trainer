@@ -2,64 +2,171 @@ import { MongoClient } from 'mongodb';
 import { v4 as uuidv4 } from 'uuid';
 import dotenv from 'dotenv';
 import { BaseUser } from '../src/types/user.types';
+import { FitnessProfile } from '../src/types/fitnessProfile.types';
 
 dotenv.config();
 
-const MONGO_URI: string = process.env.MONGO_URI || "mongodb://localhost:27017/workouts_ai_trainer";
+const MONGO_URI: string = process.env.MONGO_URI || "mongodb://localhost:27017";
+const DB_NAME = process.env.NODE_ENV === 'test' ? 'workout_ai_trainer_test' : (process.env.DB_NAME || 'workout_ai_trainer');
 
 async function populateUsersCollection() {
     try {
-        const mongoClient = new MongoClient(MONGO_URI);
+        const mongoClient = new MongoClient(MONGO_URI, {
+            maxPoolSize: 50,
+            minPoolSize: 10,
+            socketTimeoutMS: 30000,
+            connectTimeoutMS: 30000,
+            serverSelectionTimeoutMS: 5000,
+            heartbeatFrequencyMS: 10000,
+        });
         await mongoClient.connect();
-        const mongoDb = mongoClient.db("workouts_ai_trainer");
+        const mongoDb = mongoClient.db(DB_NAME);
         const userCollection = mongoDb.collection("users");
+        const fitnessProfileCollection = mongoDb.collection("fitness_profiles");
 
-        const userProfiles: BaseUser[] = [
+        // Create test users
+        const testUsers: BaseUser[] = [
             {
+                userId: uuidv4(),
                 providerId: uuidv4(),
-                email: "test1@example.com",
+                email: "home.gym.crossfitter@example.com",
                 provider: "google",
-                firstName: "Jane",
-                lastName: "Doe",
-                ageRange: "45-54",
-                sex: "female",
-                fitnessLevel: "intermediate",
-                goals: ["muscle gain", "weight loss", "strength and conditioning", "mobility"],
-                injuriesOrLimitations: [],
+                emailVerified: true,
+                firstName: "Sarah",
+                lastName: "Johnson",
+                displayName: "Sarah Johnson",
+                profilePicture: "https://example.com/sarah.jpg",
+                accountStatus: "active",
+                isRegistrationComplete: true,
                 createdAt: new Date(),
                 updatedAt: new Date()
             },
             {
+                userId: uuidv4(),
                 providerId: uuidv4(),
-                email: "test2@example.com",
+                email: "competitive.crossfitter@example.com",
+                provider: "google",
+                emailVerified: true,
+                firstName: "Michael",
+                lastName: "Chen",
+                displayName: "Michael Chen",
+                profilePicture: "https://example.com/michael.jpg",
+                accountStatus: "active",
+                isRegistrationComplete: true,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            },
+            {
+                userId: uuidv4(),
+                providerId: uuidv4(),
+                email: "intermediate.crossfitter@example.com",
                 provider: "apple",
-                firstName: "John",
-                lastName: "Smith",
-                ageRange: "45-54",
-                sex: "male",
-                fitnessLevel: "intermediate",
-                goals: ["muscle gain", "athleticism", "endurance", "strength and conditioning"],
-                injuriesOrLimitations: ["rotator cuff injury"],
+                emailVerified: true,
+                firstName: "Emma",
+                lastName: "Rodriguez",
+                displayName: "Emma Rodriguez",
+                profilePicture: "https://example.com/emma.jpg",
+                accountStatus: "active",
+                isRegistrationComplete: true,
                 createdAt: new Date(),
                 updatedAt: new Date()
             }
         ];
 
-        // Insert multiple user profiles
-        await userCollection.insertMany(userProfiles);
+        // Create corresponding fitness profiles
+        const fitnessProfiles: FitnessProfile[] = [
+            {
+                userId: testUsers[0].userId,
+                ageRange: "25-34",
+                sex: "female",
+                fitnessLevel: "beginner",
+                goals: ["strength", "endurance", "power", "general fitness"],
+                injuriesOrLimitations: [],
+                availableEquipment: [
+                    "concept 2 rower",
+                    "assault bike",
+                    "treadmill",
+                    "kettlebells",
+                    "dumbbells",
+                    "bumper plates",
+                    "pull up bar",
+                    "dip station",
+                    "jump ropes",
+                    "ply boxes (24\"/32\")",
+                    "45 mens barbell",
+                    "35 womens barbell"
+                ],
+                preferredTrainingDays: ["Monday", "Wednesday", "Friday", "Saturday"],
+                preferredWorkoutDuration: "medium",
+                locationPreference: "home",
+                createdAt: new Date(),
+                updatedAt: new Date()
+            },
+            {
+                userId: testUsers[1].userId,
+                ageRange: "25-34",
+                sex: "male",
+                fitnessLevel: "advanced",
+                goals: ["strength", "power", "endurance", "muscle gain"],
+                injuriesOrLimitations: [],
+                availableEquipment: ["full crossfit gym"],
+                preferredTrainingDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+                preferredWorkoutDuration: "long",
+                locationPreference: "gym",
+                createdAt: new Date(),
+                updatedAt: new Date()
+            },
+            {
+                userId: testUsers[2].userId,
+                ageRange: "35-44",
+                sex: "female",
+                fitnessLevel: "intermediate",
+                goals: ["strength", "endurance", "power", "general fitness"],
+                injuriesOrLimitations: [],
+                availableEquipment: [
+                    "barbells",
+                    "plates",
+                    "pull-up bar",
+                    "kettlebells",
+                    "dumbbells",
+                    "rowing machine",
+                    "treadmill",
+                    "jump ropes",
+                    "ply boxes",
+                    "medicine balls",
+                    "resistance bands"
+                ],
+                preferredTrainingDays: ["Monday", "Wednesday", "Friday", "Sunday"],
+                preferredWorkoutDuration: "medium",
+                locationPreference: "gym",
+                createdAt: new Date(),
+                updatedAt: new Date()
+            }
+        ];
 
-        console.log('User profiles inserted successfully!');
+        // Insert users and their fitness profiles
+        await userCollection.insertMany(testUsers);
+        await fitnessProfileCollection.insertMany(fitnessProfiles);
+
+        console.log('Test users and fitness profiles inserted successfully!');
         mongoClient.close();
     } catch (error) {
-        console.error('Error populating users collection:', error);
+        console.error('Error populating collections:', error);
     }
 }
 
 async function truncateDatabase() {
     try {
-        const mongoClient = new MongoClient(MONGO_URI);
+        const mongoClient = new MongoClient(MONGO_URI, {
+            maxPoolSize: 50,
+            minPoolSize: 10,
+            socketTimeoutMS: 30000,
+            connectTimeoutMS: 30000,
+            serverSelectionTimeoutMS: 5000,
+            heartbeatFrequencyMS: 10000,
+        });
         await mongoClient.connect();
-        const mongoDb = mongoClient.db("workouts_ai_trainer"); // Use the correct database name
+        const mongoDb = mongoClient.db(DB_NAME);
 
         // Get all collection names
         const collections = await mongoDb.listCollections().toArray();
@@ -80,17 +187,44 @@ async function truncateDatabase() {
 
 async function displayUsers() {
     try {
-        const mongoClient = new MongoClient(MONGO_URI);
+        const mongoClient = new MongoClient(MONGO_URI, {
+            maxPoolSize: 50,
+            minPoolSize: 10,
+            socketTimeoutMS: 30000,
+            connectTimeoutMS: 30000,
+            serverSelectionTimeoutMS: 5000,
+            heartbeatFrequencyMS: 10000,
+        });
         await mongoClient.connect();
-        const mongoDb = mongoClient.db("workouts_ai_trainer"); // Use the correct database name
-        const usersCollection = mongoDb.collection("users");
+        const mongoDb = mongoClient.db(DB_NAME);
+        const userCollection = mongoDb.collection("users");
+        const fitnessProfileCollection = mongoDb.collection("fitness_profiles");
 
-        // Find all users in the collection
-        const users = await usersCollection.find({}).toArray();
+        // Find all users and their fitness profiles
+        const users = await userCollection.find({}).toArray();
+        const profiles = await fitnessProfileCollection.find({}).toArray();
 
-        // Display the users
-        console.log('Users:');
-        users.forEach(user => console.log(user));
+        // Display the users and their profiles
+        console.log('\nUsers:');
+        users.forEach(user => {
+            console.log('\nUser:', {
+                userId: user.userId,
+                email: user.email,
+                name: `${user.firstName} ${user.lastName}`,
+                provider: user.provider
+            });
+
+            const profile = profiles.find(p => p.userId === user.userId);
+            if (profile) {
+                console.log('Fitness Profile:', {
+                    fitnessLevel: profile.fitnessLevel,
+                    goals: profile.goals,
+                    availableEquipment: profile.availableEquipment,
+                    preferredTrainingDays: profile.preferredTrainingDays,
+                    locationPreference: profile.locationPreference
+                });
+            }
+        });
 
         mongoClient.close();
     } catch (error) {

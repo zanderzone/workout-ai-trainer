@@ -1,92 +1,94 @@
-import { OpenAIWorkoutAdapter } from "../src/services/wod.service";
-import { WorkoutOptions } from "../src/types/workoutOptions.types";
-import { UserProfile } from "../src/types/userProfile.types";
-import { formatWodToMarkdown } from "../src/utils/markdown";
+import { MongoClient } from 'mongodb';
+import { getWodGenerator } from '../src/services/wod.service';
+import { FitnessProfile } from '../src/types/fitnessProfile.types';
+import { WorkoutRequest } from '../src/types/workoutRequest.types';
+import { WodType } from '../src/types/wod.types';
 import { v4 as uuidv4 } from 'uuid';
 import dotenv from 'dotenv';
-import { formatOpenAIErrorResponse } from "../src/errors";
-import { writeFile } from 'fs/promises';
-import path from 'path';
+
 dotenv.config();
 
-console.log('OPENAI_API_KEY is', process.env.OPENAI_API_KEY ? 'set' : 'not set');
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
+const DB_NAME = process.env.DB_NAME || 'workout_ai_trainer';
 
-// Mock user profile and workout options
-const userId = uuidv4();
-const userProfile: UserProfile = {
-    userId,
-    ageRange: "45-54",
-    sex: "male",
-    fitnessLevel: "beginner",
-    goals: ["weight loss", "strength", "athletic conditioning", "endurance", "hypertrophy"],
-    injuriesOrLimitations: ["left knee tightness"],
-    createdAt: new Date(),
-    updatedAt: new Date()
-};
+async function testWodGeneration() {
+    const client = new MongoClient(MONGODB_URI);
 
-const workoutOptions: WorkoutOptions = {
-    userId,
-    totalAvailableTime: "60 minutes",
-    userDescription: "For today's WOD, I'd like to focus on heavy weights with a focus on athletic conditioning. Please make it fun and challenging",
-    workoutDuration: "12 minutes <= duration <= 15 minutes",
-    scaling: "shorter duration, shorter distances, lighter weight or bodyweight exercises",
-    includeScalingOptions: true,
-    includeWarmups: true,
-    includeAlternateMovements: true,
-    includeCooldown: true,
-    includeBenchmarkWorkouts: true,
-    availableEquipment: [
-        "45 lb olympic barbell", "35 lb olympic barbell", "15-45 lb Dumbbell pairs", "Bumper Plates weight > 300 lbs",
-        "53 lb kettlebells", "32 lb kettlebells", "jump ropes", "18 inch plyometric box", "24 inch Plyometric box", "32 inch Plyometric box",
-        "pull up bar", "squat rack", "Assault Fitness Assault Bike", "Dip station", "ab mats",
-        "Assault Fitness Treadmill", "Concept 2 Rower"
-    ],
-    weather: "current Woodland, CA weather",
-    location: "garage home gym, running path, home street in Woodland, CA 95776",
-    indoorAndOutdoorWorkout: false,
-    includeExercises: [],
-    excludeExcercises: [],
-    wodRequestTime: "5:42 PM"
-};
-
-// Instantiate the OpenAIWorkoutAdapter
-const workoutAdapter = new OpenAIWorkoutAdapter();
-
-async function testGenerateWod() {
     try {
-        console.log("Generating workout plan...");
-        const result = await workoutAdapter.generateWod(userId, userProfile, workoutOptions);
+        await client.connect();
+        console.log('Connected to MongoDB');
 
-        // Format the WOD JSON into a markdown string
-        // Add required fields to the WOD object before formatting
-        const wodWithRequiredFields = {
-            ...result.wod,
-            wodId: uuidv4(),
-            userId,
+        const db = client.db(DB_NAME);
+        const wodCollection = db.collection<WodType>('wods');
+
+        // Create a test fitness profile
+        const userProfile: FitnessProfile = {
+            userId: uuidv4(),
+            ageRange: "25-34",
+            sex: "male",
+            fitnessLevel: "beginner",
+            goals: ["weight loss", "strength", "endurance", "power", "flexibility", "general fitness"],
+            injuriesOrLimitations: ["left knee tightness"],
+            availableEquipment: [
+                "bodyweight",
+                "dumbbells",
+                "resistance bands",
+                "pull-up bar",
+                "yoga mat"
+            ],
             createdAt: new Date(),
             updatedAt: new Date()
         };
-        const formattedWod = formatWodToMarkdown(wodWithRequiredFields);
 
-        // Save the formatted WOD to a markdown file
-        const outputFilePath = 'generated-wod.md';
-        await writeFile(outputFilePath, formattedWod);
-        console.log(`Generated WOD saved to: ${path.resolve(outputFilePath)}`);
+        // Create a test workout request
+        const workoutRequest: WorkoutRequest = {
+            requestId: uuidv4(),
+            userId: userProfile.userId,
+            userDescription: "I want to improve my overall fitness and strength",
+            scalingPreference: "lighter weight",
+            includeScalingOptions: true,
+            totalAvailableTime: 60,
+            workoutPlanDuration: 4,
+            workoutFocus: "Strength & Conditioning",
+            includeWarmups: true,
+            includeAlternateMovements: true,
+            includeCooldown: true,
+            includeRestDays: true,
+            includeBenchmarkWorkouts: true,
+            outdoorWorkout: false,
+            periodization: "concurrent",
+            currentWeather: "indoor",
+            includeExercises: ["push-ups", "pull-ups", "squats"],
+            excludeExercises: ["deadlifts"],
+            wodRequestTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
 
-        console.log("Generated WOD:");
-        console.log(formattedWod);
-        // Also show the raw JSON for debugging
-        console.log("\nRaw WOD JSON:");
-        console.log(JSON.stringify(result, null, 2));
+        const wodService = getWodGenerator(wodCollection);
+
+        console.log('Generating WOD...');
+        const result = await wodService.generateWod(
+            userProfile.userId,
+            userProfile,
+            workoutRequest
+        );
+
+        console.log('Generated WOD:', JSON.stringify(result, null, 2));
+
     } catch (error) {
-        const formattedError = formatOpenAIErrorResponse(error);
-        console.error("Error generating WOD:");
-        console.error(`Status: ${formattedError.status}`);
-        console.error(`Message: ${formattedError.message}`);
-        if (formattedError.error) {
-            console.error("Details:", formattedError.error);
-        }
+        console.error('Error:', error);
+    } finally {
+        await client.close();
+        console.log('Disconnected from MongoDB');
     }
 }
 
-testGenerateWod();
+(async () => {
+    try {
+        await testWodGeneration();
+    } catch (error) {
+        console.error('Error:', error);
+        process.exit(1);
+    }
+})();

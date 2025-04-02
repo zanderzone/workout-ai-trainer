@@ -12,23 +12,12 @@ interface JwtPayload {
     tokenExpiresAt?: Date;
 }
 
-// Log access attempts and patterns
-const logAccess = (req: Request, user?: BaseUser) => {
-    const timestamp = new Date().toISOString();
-    const path = req.path;
-    const method = req.method;
-    const userEmail = user?.email || 'anonymous';
-    const userProvider = user?.provider || 'none';
-
-    console.log(`[${timestamp}] Access: ${method} ${path} | User: ${userEmail} (${userProvider})`);
-};
-
 // Validate provider type
 const isValidProvider = (provider: string): provider is 'google' | 'apple' => {
     return provider === 'google' || provider === 'apple';
 };
 
-export const authenticateJWT = asyncHandler(async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const authenticateJWT = asyncHandler(async (req: Request, _: Response, next: NextFunction): Promise<void> => {
     const authHeader = req.headers.authorization;
     console.log('Authenticating request:', {
         path: req.path,
@@ -54,8 +43,10 @@ export const authenticateJWT = asyncHandler(async (req: Request, res: Response, 
 
         // Create a BaseUser object from the JWT payload
         const user: BaseUser = {
+            userId: decoded.providerId,
             providerId: decoded.providerId,
             email: decoded.email,
+            emailVerified: true,
             provider: decoded.provider,
             refreshToken: decoded.refreshToken,
             createdAt: new Date(),
@@ -73,8 +64,8 @@ export const authenticateJWT = asyncHandler(async (req: Request, res: Response, 
     }
 });
 
-export const requireRole = (roles: string[]) => {
-    return asyncHandler(async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const requireRole = (_roles: string[]) => {
+    return asyncHandler(async (req: Request, _: Response, next: NextFunction): Promise<void> => {
         if (!req.user) {
             throw new UnauthorizedError('Authentication required');
         }

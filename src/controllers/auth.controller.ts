@@ -3,21 +3,21 @@ import { generateToken } from '../auth';
 import { appleConfig, generateState } from '../config/apple.config';
 import { googleConfig } from '../config/google.config';
 import { BaseUser } from '../types/user.types';
-import { exchangeGoogleToken, exchangeAppleToken, getUserInfo, AppleUserInfo } from '../utils/oauth';
-import { CustomSession } from '../types/session.types';
+import { exchangeGoogleToken } from '../utils/oauth';
+// import { CustomSession } from '../types/session.types';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import debug from 'debug';
+// import debug from 'debug';
 import { AppleAuthClient } from '../utils/appleAuthClient';
 import { DatabaseManager } from '../utils/databaseManager';
 
-const debugAuth = debug('auth:controller');
+// const debugAuth = debug('auth:controller');
 
-type RequestWithSession = Request & { session: CustomSession };
+// type RequestWithSession = Request & { session: CustomSession };
 
 export const authController = {
     // Google OAuth methods
-    googleAuth: (req: Request, res: Response) => {
+    googleAuth: (_: Request, res: Response) => {
         const state = crypto.randomBytes(32).toString('hex');
         const scope = googleConfig.scope.join(' ');
 
@@ -186,7 +186,7 @@ export const authController = {
     },
 
     // Apple Sign In methods
-    appleAuth: (req: Request, res: Response) => {
+    appleAuth: (_: Request, res: Response) => {
         const state = generateState();
         const scope = appleConfig.scope.join(' ');
 
@@ -218,7 +218,7 @@ export const authController = {
         res.redirect(authUrl.toString());
     },
 
-    appleCallback: async (req: Request, res: Response) => {
+    appleCallback: async (req: Request, res: Response): Promise<void> => {
         console.log('Apple OAuth callback received', {
             body: req.body,
             query: req.query,
@@ -239,7 +239,7 @@ export const authController = {
                     storedState: req.cookies.apple_oauth_state,
                     cookies: req.cookies
                 });
-                return res.status(400).json({
+                res.status(400).json({
                     message: 'Invalid state parameter',
                     debug: {
                         receivedState: state,
@@ -247,13 +247,15 @@ export const authController = {
                         allCookies: req.cookies
                     }
                 });
+                return;
             }
 
             console.log('State parameter validated successfully');
 
             if (!code) {
                 console.error('No authorization code received');
-                return res.status(400).json({ message: 'No authorization code received' });
+                res.status(400).json({ message: 'No authorization code received' });
+                return;
             }
 
             console.log('Starting token exchange with Apple');
@@ -308,8 +310,10 @@ export const authController = {
                     throw new Error('Failed to find updated user');
                 }
                 user = {
+                    userId: updatedUser.userId,
                     providerId: updatedUser.providerId,
                     email: updatedUser.email,
+                    emailVerified: updatedUser.emailVerified,
                     provider: updatedUser.provider,
                     refreshToken: updatedUser.refreshToken,
                     tokenExpiresAt: updatedUser.tokenExpiresAt,
@@ -320,8 +324,10 @@ export const authController = {
             } else {
                 console.log('Creating new user');
                 const newUser: BaseUser = {
+                    userId: decodedIdToken.sub,
                     providerId: decodedIdToken.sub,
                     email: decodedIdToken.email,
+                    emailVerified: true,
                     provider: 'apple',
                     refreshToken: tokenResponse.refresh_token,
                     tokenExpiresAt: new Date(Date.now() + tokenResponse.expires_in * 1000),
@@ -339,7 +345,8 @@ export const authController = {
 
             if (!user) {
                 console.error('Failed to find or create user');
-                return res.status(500).json({ message: 'Failed to create or update user' });
+                res.status(500).json({ message: 'Failed to create or update user' });
+                return;
             }
 
             console.log('Generating JWT token');
