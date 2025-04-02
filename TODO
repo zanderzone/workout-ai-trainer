@@ -54,7 +54,19 @@ Workout AI Trainer - MVP (v0.1):
             Notes: Essential as OpenAI is the core service
         ✔ Add basic input validation @P0 @2h @id(basic-valid) @sprint(2) @started(25-03-27 23:13) @done(25-03-27 23:49) @lasted(36m3s)
             Notes: Prevent invalid WOD requests
-    
+   
+    WOD Models:
+      ✔ Add WOD model @P0 @4h @id(wod-model) @sprint(2) @started(25-03-28 00:41) @done(25-03-28 00:41) @lasted(0s)
+          Notes: Add WOD model to the project
+          Subtasks:
+          - Add WOD model to the project
+      
+    MCP API Integration:
+      ✔ Add MCP API integration @P0 @4h @id(mcp-api) @sprint(2) @started(25-03-28 00:41) @done(25-03-28 00:41) @lasted(0s)
+          Notes: Add MCP API integration to the project
+          Subtasks:
+          - Add MCP API integration to the project
+
     WOD Generation UI:
         ☐ Create WOD request form @P0 @4h @id(wod-form) @sprint(2) @started(25-03-28 00:41)
             Notes: Form with essential workout preferences

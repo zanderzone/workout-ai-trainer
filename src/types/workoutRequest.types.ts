@@ -9,7 +9,7 @@ export interface WorkoutRequest {
     includeScalingOptions?: boolean;
     totalAvailableTime?: number; // in minutes
     workoutPlanDuration?: number; // in weeks (if multi-week plan)
-    workoutFocus?: "Strength" | "Conditioning" | "Strength & Conditioning" | "Mobility" | "Endurance";
+    workoutFocus?: "Strength" | "Conditioning" | "Strength & Conditioning" | "Mobility" | "Endurance" | "Athletic Performance" | "Competitive Performance";
     includeWarmups?: boolean;
     includeAlternateMovements?: boolean;
     includeCooldown?: boolean;
@@ -23,6 +23,9 @@ export interface WorkoutRequest {
     wodRequestTime: Date;
     createdAt: Date;
     updatedAt: Date;
+    workoutType?: string;
+    wodDuration?: string;  // e.g., "10 to 20 minutes", "30-45 minutes", "15 minutes"
+    intensity?: string;
 }
 
 // Define Zod schema for validation
@@ -39,7 +42,9 @@ export const workoutRequestSchema = z.object({
         "Conditioning",
         "Strength & Conditioning",
         "Mobility",
-        "Endurance"
+        "Endurance",
+        "Athletic Performance",
+        "Competitive Performance"
     ]).optional(),
     includeWarmups: z.boolean().optional(),
     includeAlternateMovements: z.boolean().optional(),
@@ -63,7 +68,10 @@ export const workoutRequestSchema = z.object({
     excludeExercises: z.array(z.string()).optional(),
     wodRequestTime: z.date(),
     createdAt: z.date(),
-    updatedAt: z.date()
+    updatedAt: z.date(),
+    workoutType: z.string().optional(),
+    wodDuration: z.string().optional(),
+    intensity: z.string().optional()
 });
 
 // Define Mongoose schema for MongoDB storage
@@ -82,7 +90,9 @@ export const workoutRequestMongoSchema = new Schema({
             "Conditioning",
             "Strength & Conditioning",
             "Mobility",
-            "Endurance"
+            "Endurance",
+            "Athletic Performance",
+            "Competitive Performance"
         ],
         required: false
     },
@@ -106,7 +116,10 @@ export const workoutRequestMongoSchema = new Schema({
     excludeExercises: { type: [String], required: false },
     wodRequestTime: { type: Date, required: true },
     createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now }
+    updatedAt: { type: Date, default: Date.now },
+    workoutType: { type: String, required: false },
+    wodDuration: { type: String, required: false },
+    intensity: { type: String, required: false }
 }, {
     timestamps: true,
     versionKey: false

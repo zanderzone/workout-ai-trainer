@@ -1,5 +1,5 @@
 import express from "express";
-import { authenticateJWT, validateSession } from "../middleware/auth.middleware";
+import { authenticateJWT } from "../middleware/auth.middleware";
 import userController from "../controllers/user.controller";
 import asyncHandler from "express-async-handler";
 
@@ -9,7 +9,7 @@ const router = express.Router();
 router.post("/", asyncHandler(userController.createUser));
 
 // Protected routes
-router.use(authenticateJWT, validateSession);
+router.use(authenticateJWT);
 router.get("/:userId", asyncHandler(userController.getUser));
 
 export default router;

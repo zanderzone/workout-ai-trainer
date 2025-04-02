@@ -257,7 +257,7 @@ export class CollectionInitializer {
       fitnessProfileService = new FitnessProfileService(fitnessProfileCollection);
       workoutRequestService = new WorkoutRequestService(workoutRequestCollection);
       wodService = new WodService(wodCollection, new OpenAIWorkoutAdapter());
-      userService = new UserService(userCollection);
+      userService = new UserService(userCollection, fitnessProfileCollection);
 
       // Add services to app locals
       if (app && app.locals) {

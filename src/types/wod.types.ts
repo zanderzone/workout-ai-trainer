@@ -2,7 +2,6 @@ import { z } from "zod";
 import { warmupCooldownSchema } from "../future/types/workout.types";
 import { Schema } from "mongoose";
 import { ObjectId } from "mongodb";
-import { enhancedWodValidationSchema } from "../validation/workout.validation";
 import { FitnessProfile } from "./fitnessProfile.types";
 import { WorkoutRequest } from "./workoutRequest.types";
 
@@ -266,4 +265,21 @@ export interface WodAIAdapter {
         fitnessProfile?: FitnessProfile,
         workoutRequest?: WorkoutRequest
     ): Promise<WodResponse>;
+
+    determineWorkoutType(
+        workoutOverview: string,
+        fitnessProfile: FitnessProfile
+    ): Promise<WodTypeRecommendation>;
+
+    generateWodWithAI(
+        fitnessProfile: FitnessProfile,
+        workoutRequest: WorkoutRequest
+    ): Promise<any>;
+}
+
+export interface WodTypeRecommendation {
+    workoutType: string;
+    durationRange: string;
+    intensity: string;
+    focus: string;
 }

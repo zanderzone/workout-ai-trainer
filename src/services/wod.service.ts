@@ -50,6 +50,21 @@ export class WodService {
         }
     }
 
+    async getRecentWorkouts(userId: string, limit: number = 5): Promise<WodType[]> {
+        try {
+            const workouts = await this.collection
+                .find({ userId })
+                .sort({ createdAt: -1 })
+                .limit(limit)
+                .toArray();
+
+            return workouts;
+        } catch (error) {
+            console.error('Error fetching recent workouts:', error);
+            throw new Error('Failed to fetch recent workouts');
+        }
+    }
+
     async create(wod: Omit<WodType, '_id'>): Promise<WodType> {
         const result = await this.collection.insertOne(wod as WodType);
         return { ...wod, _id: result.insertedId };
@@ -82,6 +97,7 @@ export class WodService {
 
 // Factory function to create a WOD service instance
 export function getWodGenerator(collection: Collection<WodType>): WodService {
+    // Remove MCP-related code and simplify adapter initialization
     const aiAdapter = new OpenAIWorkoutAdapter();
     return new WodService(collection, aiAdapter);
 }

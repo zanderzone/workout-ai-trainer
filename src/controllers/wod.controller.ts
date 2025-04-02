@@ -7,6 +7,9 @@ import { formatOpenAIErrorResponse, OpenAIRateLimitError } from "../errors/opena
 import { handleOpenAIError } from "../errors/openai";
 import { enhancedWodValidationSchema } from "../validation/workout.validation";
 import { WodType } from "../types/wod.types";
+import { formatWorkoutOverview } from "../utils/workout.utils";
+import { WodModel } from '../models/wod.model';
+import { WodGenerationError } from '../errors/wod.errors';
 
 // Request validation schema based on testWodGeneration.ts parameters
 const createWodRequestSchema = z.object({
@@ -59,7 +62,9 @@ const createWodRequestSchema = z.object({
             "Conditioning",
             "Strength & Conditioning",
             "Mobility",
-            "Endurance"
+            "Endurance",
+            "Athletic Performance",
+            "Competitive Performance"
         ]).optional(),
         includeWarmups: z.boolean().optional(),
         includeAlternateMovements: z.boolean().optional(),
@@ -85,47 +90,28 @@ const createWodRequestSchema = z.object({
     }).optional()
 });
 
-export const wodController = {
-    generateWod: async (req: Request, res: Response) => {
+export class WodController {
+    constructor(private readonly wodModel: WodModel) { }
+
+    async generateWod(req: Request, res: Response): Promise<void> {
         try {
-            const { userId, fitnessProfile, workoutRequest } = createWodRequestSchema.parse(req.body);
-            const wodCollection: Collection<WodType> = req.app.locals.wodCollection;
+            const { userId, fitnessProfile, workoutRequest } = req.body;
 
-            if (!wodCollection) {
-                throw new Error('Database connection not initialized');
-            }
+            console.log('Starting WOD generation for user:', userId);
+            const wod = await this.wodModel.generateWod(userId, fitnessProfile, workoutRequest);
+            console.log('Generated WOD:', wod);
 
-            const wodService = getWodGenerator(wodCollection);
-
-            // Add createdAt and updatedAt to fitnessProfile if it exists
-            const profileWithDates = fitnessProfile ? {
-                ...fitnessProfile,
-                createdAt: new Date(),
-                updatedAt: new Date()
-            } : undefined;
-
-            // Add required fields to workoutRequest if it exists
-            const requestWithMetadata = workoutRequest ? {
-                ...workoutRequest,
-                requestId: uuidv4(),
-                userId,
-                wodRequestTime: workoutRequest.wodRequestTime || new Date(),
-                createdAt: new Date(),
-                updatedAt: new Date()
-            } : undefined;
-
-            // Generate WOD using the new types
-            const result = await wodService.generateWod(userId, profileWithDates, requestWithMetadata);
-
-            res.json(result);
+            res.json({ wod });
         } catch (error) {
-            if (error instanceof OpenAIRateLimitError) {
-                res.status(429).json(formatOpenAIErrorResponse(error));
+            console.error('Error generating WOD:', error);
+
+            if (error instanceof WodGenerationError) {
+                res.status(400).json({ error: error.message });
             } else {
-                handleOpenAIError(error);
+                res.status(500).json({ error: 'Internal server error' });
             }
         }
-    },
+    }
 
     async getWod(req: Request, res: Response): Promise<void> {
         const { id } = req.params;
@@ -180,6 +166,6 @@ export const wodController = {
             res.status(500).json({ error: 'Failed to fetch WOD' });
         }
     }
-};
+}
 
-export default wodController;
+export default WodController;

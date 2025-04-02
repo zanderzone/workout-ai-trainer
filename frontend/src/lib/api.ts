@@ -43,32 +43,76 @@ export async function checkAuthStatus() {
     }
 }
 
-export async function completeProfile(data: {
-    ageRange: "18-24" | "25-34" | "35-44" | "45-54" | "55+";
-    sex: "male" | "female" | "other";
+interface FitnessProfileData {
+    ageRange?: "18-24" | "25-34" | "35-44" | "45-54" | "55+";
+    sex?: "male" | "female" | "other";
     fitnessLevel: "beginner" | "intermediate" | "advanced";
-    goals: string[];
-    injuriesOrLimitations: string[];
-    workoutDuration: string;
-    equipment: string[];
-    gymLocation: string;
-}, token: string) {
-    const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-            profileData: data
-        }),
-        credentials: 'include'
-    });
+    goals: Array<"weight loss" | "muscle gain" | "strength" | "endurance" | "power" | "flexibility" | "general fitness">;
+    injuriesOrLimitations?: string[];
+    availableEquipment: string[];
+    preferredTrainingDays?: Array<"Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday">;
+    preferredWorkoutDuration?: "short" | "medium" | "long";
+    locationPreference?: "gym" | "home" | "park" | "indoor" | "outdoor" | "both";
+}
 
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Failed to complete profile' }));
-        throw new Error(errorData.message || 'Failed to complete profile');
+export async function completeProfile(data: FitnessProfileData) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        throw new Error('No authentication token found');
     }
 
-    return response.json();
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/fitness-profile`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Failed to complete profile');
+        }
+
+        return response.json();
+    } catch (error) {
+        console.error('Error completing profile:', error);
+        throw error;
+    }
+}
+
+export async function validateProfile(data: FitnessProfileData): Promise<{ isValid: boolean; errors: Record<string, string> }> {
+    const errors: Record<string, string> = {};
+
+    // Required fields validation
+    if (!data.fitnessLevel) {
+        errors.fitnessLevel = 'Fitness level is required';
+    }
+    if (!data.goals || data.goals.length === 0) {
+        errors.goals = 'At least one goal is required';
+    }
+    if (!data.availableEquipment || data.availableEquipment.length === 0) {
+        errors.availableEquipment = 'At least one piece of equipment is required';
+    }
+
+    // Optional fields validation
+    if (data.ageRange && !["18-24", "25-34", "35-44", "45-54", "55+"].includes(data.ageRange)) {
+        errors.ageRange = 'Invalid age range';
+    }
+    if (data.sex && !["male", "female", "other"].includes(data.sex)) {
+        errors.sex = 'Invalid sex option';
+    }
+    if (data.preferredWorkoutDuration && !["short", "medium", "long"].includes(data.preferredWorkoutDuration)) {
+        errors.preferredWorkoutDuration = 'Invalid workout duration';
+    }
+    if (data.locationPreference && !["gym", "home", "park", "indoor", "outdoor", "both"].includes(data.locationPreference)) {
+        errors.locationPreference = 'Invalid location preference';
+    }
+
+    return {
+        isValid: Object.keys(errors).length === 0,
+        errors
+    };
 } 
