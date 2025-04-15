@@ -9,11 +9,77 @@ import { User } from '../src/types/user.types';
 import { FitnessProfile } from '../src/types/fitnessProfile.types';
 import { WodType } from '../src/types/wod.types';
 import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs';
+import path from 'path';
 
 dotenv.config();
 
 const MONGO_URI: string = process.env.MONGO_URI || "mongodb://localhost:27017";
 const DB_NAME = process.env.NODE_ENV === 'test' ? 'workout_ai_trainer_test' : (process.env.DB_NAME || 'workout_ai_trainer');
+
+function formatWodToMarkdown(wod: WodType, user: User, fitnessProfile: FitnessProfile): string {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const warmupExercises = wod.warmup?.activities?.map(activity => {
+        const exercises = activity.exercises?.map(ex => `- ${ex.name}: ${ex.reps}${ex.sets ? ` (${ex.sets} sets)` : ''}`).join('\n') || '';
+        return `### ${activity.activity || 'Activity'} (${activity.duration || 'duration not specified'})\n${exercises}\n`;
+    }).join('\n') || '';
+
+    const workoutExercises = wod.workout?.exercises?.map(exercise => {
+        const scalingOptions = exercise.scalingOptions?.map(option =>
+            `- ${option.description}`
+        ).join('\n') || '';
+
+        return `### ${exercise.exercise}${exercise.weight ? ` (${exercise.weight} lbs)` : ''}\n` +
+            `- Reps: ${exercise.reps}\n` +
+            `- Type: ${exercise.type}\n` +
+            `- Goal: ${exercise.goal}\n` +
+            (scalingOptions ? `\nScaling Options:\n${scalingOptions}\n` : '');
+    }).join('\n') || '';
+
+    const cooldownExercises = wod.cooldown?.activities?.map(activity =>
+        `### ${activity.activity || 'Activity'} (${activity.duration || 'duration not specified'})\n` +
+        (activity.exercises?.map(ex => `- ${ex.name}: ${ex.reps}${ex.sets ? ` (${ex.sets} sets)` : ''}`).join('\n') || '')
+    ).join('\n') || '';
+
+    return `# ${wod.workout?.type || 'Workout'} - ${timestamp}\n\n` +
+        `## User Profile\n` +
+        `- Name: ${user.firstName} ${user.lastName}\n` +
+        `- Fitness Level: ${fitnessProfile.fitnessLevel}\n` +
+        `- Goals: ${fitnessProfile.goals.join(', ')}\n` +
+        `- Location: ${fitnessProfile.locationPreference}\n\n` +
+        `## Workout Description\n` +
+        `${wod.description || ''}\n\n` +
+        `## Warmup (${wod.warmup?.duration || 'duration not specified'})\n` +
+        `${warmupExercises}\n` +
+        `## Main Workout\n` +
+        `### ${wod.workout?.type || 'Workout'}\n` +
+        `${wod.workout?.wodDescription || ''}\n\n` +
+        `### Strategy\n` +
+        `${wod.workout?.wodStrategy || ''}\n\n` +
+        `### Goal\n` +
+        `${wod.workout?.wodGoal || ''}\n\n` +
+        `### Exercises\n` +
+        `${workoutExercises}\n` +
+        `## Cooldown\n` +
+        `${cooldownExercises}\n` +
+        `## Recovery\n` +
+        `${wod.recovery || ''}\n`;
+}
+
+async function writeWodToFile(wod: WodType, user: User, fitnessProfile: FitnessProfile) {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const fileName = `generate-sample-wod-${timestamp}.md`;
+    const filePath = path.join(process.cwd(), 'docs', 'sample-wods', fileName);
+
+    const markdown = formatWodToMarkdown(wod, user, fitnessProfile);
+
+    try {
+        fs.writeFileSync(filePath, markdown);
+        console.log(`\nWOD written to: ${filePath}`);
+    } catch (error) {
+        console.error('Error writing WOD to file:', error);
+    }
+}
 
 async function generateSampleWod() {
     const mongoClient = new MongoClient(MONGO_URI, {
@@ -57,14 +123,14 @@ async function generateSampleWod() {
         const workoutRequest: WorkoutRequest = {
             requestId: uuidv4(),
             userId: user.userId,
-            userDescription: "Looking for a balanced workout that incorporates both strength and conditioning",
+            userDescription: "I'm interested in a WOD that includes a barbell movement. I'm an intermediate athlete with 15 years of Crossfit and 10 years as a competitive weightlifter.",
             scalingPreference: "beginner-friendly",
             includeScalingOptions: true,
             workoutFocus: "Strength & Conditioning",
             includeWarmups: true,
             includeAlternateMovements: true,
             includeCooldown: true,
-            wodDuration: "15 to 20 minutes",
+            wodDuration: "10 minutes to 20 minutes",
             wodRequestTime: new Date(),
             createdAt: new Date(),
             updatedAt: new Date()
@@ -79,6 +145,9 @@ async function generateSampleWod() {
         // Generate WOD
         console.log('Generating workout...');
         const wod = await wodModel.generateWod(user.userId, fitnessProfile, workoutRequest);
+
+        // Write WOD to markdown file
+        await writeWodToFile(wod, user, fitnessProfile);
 
         // Display the generated WOD
         console.log('\nGenerated Workout:');

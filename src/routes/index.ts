@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { authController } from '../controllers/auth.controller';
 import { healthController } from '../controllers/health.controller';
 import { authenticateJWT } from '../middleware/auth.middleware';
+import userController from '../controllers/user.controller';
+import asyncHandler from 'express-async-handler';
 
 const router = Router();
 
@@ -15,9 +17,7 @@ router.post('/auth/apple', authController.appleAuth);
 router.post('/auth/apple/callback', authController.appleCallback);
 
 // Protected routes (require auth)
-router.get('/api/me', authenticateJWT, (req, res) => {
-    res.json(req.user);
-});
+router.get('/api/me', authenticateJWT, asyncHandler(userController.getMe));
 
 // ... rest of the routes ...
 

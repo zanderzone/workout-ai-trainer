@@ -1,24 +1,41 @@
 import { WodType } from '../types/wod.types';
 import { FitnessProfile } from '../types/fitnessProfile.types';
+import { WorkoutRequest } from '../types/workoutRequest.types';
 
-export function formatWorkoutOverview(workouts: WodType[], fitnessProfile: FitnessProfile): string {
+/**
+ * Generates a string summarizing the user's available equipment and their most recent workouts.
+ * The string is formatted as markdown and can be used as a prompt for generating a workout.
+ * @param workouts An array of recent workouts
+ * @param fitnessProfile The user's fitness profile
+ * @returns A markdown-formatted string summarizing the user's equipment and recent workouts
+ */
+export function formatWorkoutOverview(workouts: WodType[], fitnessProfile: FitnessProfile, workoutRequest?: WorkoutRequest): string {
     let overview = '';
 
     // Add recent workouts section if there are any
-    if (workouts.length > 0) {
-        overview += 'Recent Workouts:\n';
-        workouts.forEach(workout => {
-            overview += `- ${workout.workout.type} workout on ${new Date(workout.createdAt).toLocaleDateString()}\n`;
-            overview += `  Duration: ${workout.workout.duration}\n`;
-            overview += `  Focus: ${workout.workout.wodGoal}\n`;
-            overview += `  Key Exercises:\n`;
-            if (workout.workout.exercises) {
-                workout.workout.exercises.slice(0, 3).forEach(exercise => {
-                    overview += `    * ${exercise.exercise} (${exercise.reps} reps)\n`;
-                });
-            }
-        });
-        overview += '\n';
+    // if (workouts.length > 0) {
+    //     overview += 'Recent Workouts:\n';
+    //     workouts.forEach(workout => {
+    //         overview += `- ${workout.workout.type} workout on ${new Date(workout.createdAt).toLocaleDateString()}\n`;
+    //         overview += `  Duration: ${workout.workout.duration}\n`;
+    //         overview += `  Focus: ${workout.workout.wodGoal}\n`;
+    //         overview += `  Key Exercises:\n`;
+    //         if (workout.workout.exercises) {
+    //             workout.workout.exercises.slice(0, 3).forEach(exercise => {
+    //                 overview += `    * ${exercise.exercise} (${exercise.reps} reps)\n`;
+    //             });
+    //         }
+    //     });
+    //     overview += '\n';
+    // }
+
+    if (workoutRequest) {
+        overview += `Workout Request:\n`;
+        overview += `  User Description: ${workoutRequest.userDescription}\n`;
+        overview += `  WOD Duration: ${workoutRequest.wodDuration}\n`;
+        overview += `  WOD Focus: ${workoutRequest.workoutFocus}\n`;
+        overview += `  Scaling Preference: ${workoutRequest.scalingPreference}\n`;
+        overview += `  WOD Duration: ${workoutRequest.wodDuration}\n`;
     }
 
     // Add equipment categories
