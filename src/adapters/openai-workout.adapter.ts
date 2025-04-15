@@ -103,25 +103,54 @@ export class OpenAIWorkoutAdapter implements WodAIAdapter {
     ): Promise<WodTypeRecommendation> {
         const prompt = `Based on the following workout overview and fitness profile, determine the most appropriate workout type and duration range for the next workout.
 
-Workout Overview:
-${workoutOverview}
+Recent Workout History:
+Date: "2025-04-09"
+Workout: 
+ - Snatches: 3 sets of 2 reps build up to 80% of 1RM
+   Results: 70 kg, 70 kg, 70 kg
+ - Clean & Jerk: 3 sets of 2 cleans and 1 jerk and build up to 80% of 1RM
+   Results: 90 kg, 90 kg, 90 kg
+ - Back Squat: 5 reps of 90kg, 3 reps at 100kg, 1 rep at 110kg, 10 reps at 100kg 
+
+Date: "2025-04-08"
+Workout:
+EMOM 24 minutes:
+ - 10x 35 lb Dumbbell Goblet Squats
+ - 10 calorie assault bike
+ - 10x 35# Dumbbell Push Press
+Results: Completed one movement per minute for 24 minutes
+
+Date: "2025-04-12"
+Workout:
+AMRAP: 20 minutes:
+ - 10x 135 lb Deadlifts
+ - 15 calorie on assault bike
+ - 20x 30 lb kettlebell swings
+Results: 4 rounds + 10 deadlifts + 10 calories on assault bike
+
+
+${workoutOverview}\n
+
 
 Fitness Profile:
 ${JSON.stringify(fitnessProfile, null, 2)}
 
 Please recommend:
-1. The most appropriate workout type (AMRAP, EMOM, For Time, etc.)
+1. The most appropriate workout type (e.g. Rounds for Time, AMRAP, EMOM, tabata, ladder, etc.)
 2. A suitable duration range (e.g., "10 to 20 minutes")
 3. The intensity level (low, medium, high)
-4. The primary focus/goal of the workout (must be one of: "Strength", "Conditioning", "Strength & Conditioning", "Mobility", "Endurance", "Athletic Performance", "Competitive Performance")
+4. The primary focus/goal of the workout (must be one of: "General Fitness", "Strength", "Conditioning", "Strength & Conditioning", "Mobility", "Endurance", "Athletic Performance", "Competitive Performance")
 
 Consider:
 - The user's fitness level (${fitnessProfile.fitnessLevel})
-- Their available equipment
+- Their available equipment. If no equipment is available, recommend a workout that can be done with bodyweight only.
+- Their location preference (${fitnessProfile.locationPreference})
+- If user location is Crossfit gym or globo gym, recommend an excercises that can be done with potential available equipment.
 - Their goals and preferences
 - The time of day (${new Date().toISOString()})
 - Their age range (${fitnessProfile.ageRange || 'not specified'})
 - Their sex (${fitnessProfile.sex || 'not specified'})
+
 
 Respond in JSON format with the following structure:
 {
@@ -131,6 +160,7 @@ Respond in JSON format with the following structure:
     "focus": "string (must be one of: Strength, Conditioning, Strength & Conditioning, Mobility, Endurance, Athletic Performance, Competitive Performance)"
 }`;
 
+        console.log('User Prompt:', prompt);
         try {
             const response = await this.openai.chat.completions.create({
                 model: "gpt-4",
@@ -259,9 +289,9 @@ Provide your recommendation in the following JSON format:
 }
 
 Note: The workout type should follow standard CrossFit terminology and formats. For example:
+- For Time (complete work as fast as possible)
 - AMRAP (As Many Rounds As Possible)
 - EMOM (Every Minute On the Minute)
-- For Time (complete work as fast as possible)
 - Tabata (20s work, 10s rest)
 - Ladder (increasing/decreasing reps)
 - RFT (Rounds For Time)

@@ -1,164 +1,358 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+/**
+ * page.test.tsx
+ * Comprehensive tests for the registration page component
+ */
+import React from 'react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { jwtDecode } from 'jwt-decode';
+import { completeProfile } from '@/lib/api';
 import RegisterPage from '../page';
 
-// Mock next/navigation
+// Mock dependencies
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
   useSearchParams: jest.fn(),
 }));
 
-// Mock jwt-decode
-jest.mock('jwt-decode', () => {
-  return {
-    __esModule: true,
-    default: jest.fn()
-  };
-});
-
-// Mock the API call
-jest.mock('@/lib/api', () => ({
-  completeProfile: jest.fn(),
+jest.mock('jwt-decode', () => ({
+  jwtDecode: jest.fn()
 }));
 
-describe('RegisterPage', () => {
-  const mockRouter = {
+jest.mock('@/lib/api', () => ({
+  completeProfile: jest.fn().mockResolvedValue({})
+}));
+
+// Test constants
+const MOCK_TOKEN = 'valid-mock-token';
+const MOCK_USER = {
+  name: 'Test User',
+  email: 'test@example.com',
+  sub: '123',
+  exp: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
+};
+
+// Test utilities
+const generateMockToken = (expired = false) => {
+  return {
+    token: MOCK_TOKEN,
+    decoded: {
+      ...MOCK_USER,
+      exp: expired 
+        ? Math.floor(Date.now() / 1000) - 3600 // 1 hour ago
+        : Math.floor(Date.now() / 1000) + 3600 // 1 hour from now
+    }
+  };
+};
+
+const setupMocks = (options = {}) => {
+  const {
+    token = MOCK_TOKEN,
+    decodedToken = MOCK_USER,
+    throwTokenError = false,
+    apiError = null
+  } = options;
+
+  // Setup router mock
+  const router = {
     push: jest.fn(),
+    replace: jest.fn(),
+    back: jest.fn(),
   };
+  (useRouter as jest.Mock).mockReturnValue(router);
 
-  const mockSearchParams = {
-    get: jest.fn(),
+  // Setup search params mock
+  const searchParams = {
+    get: jest.fn(param => param === 'token' ? token : null),
   };
+  (useSearchParams as jest.Mock).mockReturnValue(searchParams);
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-    (useRouter as any).mockReturnValue(mockRouter);
-    (useSearchParams as any).mockReturnValue(mockSearchParams);
-    const jwtDecode = require('jwt-decode');
-    jwtDecode.default.mockReset();
-  });
-
-  it('should redirect to login if no token is present', () => {
-    mockSearchParams.get.mockReturnValue(null);
-    render(<RegisterPage />);
-    expect(mockRouter.push).toHaveBeenCalledWith('/login');
-  });
-
-  it('should display user name when valid token is provided', () => {
-    const mockToken = 'valid-token';
-    const mockDecodedToken = {
-      name: 'John Doe',
-      email: 'john@example.com',
-      sub: '123',
-      exp: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
-    };
-
-    mockSearchParams.get.mockReturnValue(mockToken);
-    const jwtDecode = require('jwt-decode');
-    jwtDecode.default.mockReturnValue(mockDecodedToken);
-
-    render(<RegisterPage />);
-    expect(screen.getByText('Welcome, John Doe!')).toBeInTheDocument();
-  });
-
-  it('should handle expired token', () => {
-    const mockToken = 'expired-token';
-    const mockDecodedToken = {
-      name: 'John Doe',
-      email: 'john@example.com',
-      sub: '123',
-      exp: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
-    };
-
-    mockSearchParams.get.mockReturnValue(mockToken);
-    const jwtDecode = require('jwt-decode');
-    jwtDecode.default.mockReturnValue(mockDecodedToken);
-
-    render(<RegisterPage />);
-    expect(screen.getByText('Your session has expired. Please log in again.')).toBeInTheDocument();
-  });
-
-  it('should handle invalid token', () => {
-    const mockToken = 'invalid-token';
-    mockSearchParams.get.mockReturnValue(mockToken);
-    const jwtDecode = require('jwt-decode');
-    jwtDecode.default.mockImplementation(() => {
+  // Setup token decoder mock
+  if (throwTokenError) {
+    (jwtDecode as jest.Mock).mockImplementation(() => {
       throw new Error('Invalid token');
     });
+  } else {
+    (jwtDecode as jest.Mock).mockReturnValue(decodedToken);
+  }
 
-    render(<RegisterPage />);
-    expect(screen.getByText('Invalid authentication token. Please log in again.')).toBeInTheDocument();
+  // Setup API mock
+  if (apiError) {
+    (completeProfile as jest.Mock).mockRejectedValue(new Error(apiError));
+  } else {
+    (completeProfile as jest.Mock).mockResolvedValue({});
+  }
+
+  // Setup localStorage mock
+  Object.defineProperty(window, 'localStorage', {
+    value: {
+      getItem: jest.fn(),
+      setItem: jest.fn(),
+      removeItem: jest.fn(),
+      clear: jest.fn(),
+    },
+    writable: true
   });
 
-  it('should handle form submission successfully', async () => {
-    const mockToken = 'valid-token';
-    const mockDecodedToken = {
-      name: 'John Doe',
-      email: 'john@example.com',
-      sub: '123',
-      exp: Math.floor(Date.now() / 1000) + 3600,
-    };
+  return {
+    router,
+    searchParams,
+    mockJwtDecode: jwtDecode,
+    mockCompleteProfile: completeProfile,
+    localStorage: window.localStorage,
+  };
+};
 
-    mockSearchParams.get.mockReturnValue(mockToken);
-    const jwtDecode = require('jwt-decode');
-    jwtDecode.default.mockReturnValue(mockDecodedToken);
+// Custom render function
+const renderComponent = (options = {}) => {
+  const mocks = setupMocks(options);
+  const rendered = render(<RegisterPage />);
+  return {
+    ...rendered,
+    ...mocks
+  };
+};
 
-    render(<RegisterPage />);
+describe('RegisterPage', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-    // Fill in required fields
-    fireEvent.change(screen.getByLabelText(/age range/i), {
-      target: { value: '25-34' },
+  describe('Authentication & Authorization', () => {
+    it('should display user name from decoded token', async () => {
+      renderComponent();
+      
+      await waitFor(() => {
+        expect(screen.getByText(`Welcome, ${MOCK_USER.name}!`)).toBeInTheDocument();
+      });
     });
-    fireEvent.change(screen.getByLabelText(/sex/i), {
-      target: { value: 'male' },
+    
+    it('should redirect to login if no token is present', async () => {
+      const { router } = renderComponent({ token: null });
+      
+      await waitFor(() => {
+        expect(router.push).toHaveBeenCalledWith('/login');
+      });
     });
-    fireEvent.change(screen.getByLabelText(/fitness level/i), {
-      target: { value: 'beginner' },
+  
+    it('should redirect to login with invalid token', async () => {
+      const { router } = renderComponent({ throwTokenError: true });
+      
+      await waitFor(() => {
+        expect(screen.getByText('Invalid authentication token. Please log in again.')).toBeInTheDocument();
+        expect(router.push).toHaveBeenCalledWith('/login');
+      });
     });
-
-    // Submit the form
-    fireEvent.click(screen.getByRole('button', { name: /register/i }));
-
-    await waitFor(() => {
-      expect(mockRouter.push).toHaveBeenCalledWith('/dashboard');
+    
+    it('should redirect to login with expired token', async () => {
+      const { token, decoded } = generateMockToken(true); // Expired token
+      const { router } = renderComponent({ token, decodedToken: decoded });
+      
+      await waitFor(() => {
+        expect(screen.getByText('Your session has expired. Please log in again.')).toBeInTheDocument();
+        expect(router.push).toHaveBeenCalledWith('/login');
+      });
     });
   });
 
-  it('should handle form submission error', async () => {
-    const mockToken = 'valid-token';
-    const mockDecodedToken = {
-      name: 'John Doe',
-      email: 'john@example.com',
-      sub: '123',
-      exp: Math.floor(Date.now() / 1000) + 3600,
-    };
-
-    mockSearchParams.get.mockReturnValue(mockToken);
-    const jwtDecode = require('jwt-decode');
-    jwtDecode.default.mockReturnValue(mockDecodedToken);
-
-    // Mock API error
-    const { completeProfile } = await import('@/lib/api');
-    (completeProfile as any).mockRejectedValue(new Error('API Error'));
-
-    render(<RegisterPage />);
-
-    // Fill in required fields
-    fireEvent.change(screen.getByLabelText(/age range/i), {
-      target: { value: '25-34' },
-    });
-    fireEvent.change(screen.getByLabelText(/sex/i), {
-      target: { value: 'male' },
-    });
-    fireEvent.change(screen.getByLabelText(/fitness level/i), {
-      target: { value: 'beginner' },
+  describe('Form Navigation', () => {
+    it('should render the basic information form initially', async () => {
+      renderComponent();
+      
+      await waitFor(() => {
+        expect(screen.getByText('Complete Your Profile')).toBeInTheDocument();
+        expect(screen.getByText('Basic Information')).toBeInTheDocument();
+      });
     });
 
-    // Submit the form
-    fireEvent.click(screen.getByRole('button', { name: /register/i }));
+    it('should navigate between form steps', async () => {
+      renderComponent();
+      
+      // Basic Info step
+      const ageSelect = await screen.findByLabelText(/age range/i);
+      const sexSelect = await screen.findByLabelText(/sex/i);
+      const nextButton = await screen.findByRole('button', { name: /next/i });
+      
+      // Fill basic info and proceed
+      await act(async () => {
+        fireEvent.change(ageSelect, { target: { value: '25-34' } });
+        fireEvent.change(sexSelect, { target: { value: 'male' } });
+        fireEvent.click(nextButton);
+      });
+      
+      // Should be on Fitness step
+      await waitFor(() => {
+        expect(screen.getByLabelText(/fitness level/i)).toBeInTheDocument();
+      });
+      
+      // Fill fitness info and proceed
+      await act(async () => {
+        fireEvent.change(screen.getByLabelText(/fitness level/i), {
+          target: { value: 'beginner' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: /next/i }));
+      });
+      
+      // Go back to previous step
+      const prevButton = screen.getByRole('button', { name: /previous/i });
+      await act(async () => {
+        fireEvent.click(prevButton);
+      });
+      
+      // Should be back on Basic Info step
+      await waitFor(() => {
+        expect(screen.getByText('Basic Information')).toBeInTheDocument();
+      });
+    });
+  });
 
-    await waitFor(() => {
-      expect(screen.getByText('Failed to complete profile. Please try again.')).toBeInTheDocument();
+  describe('Form Validation', () => {
+    it('should validate required fields in basic step', async () => {
+      renderComponent();
+      
+      // Wait for the form to load
+      const nextButton = await screen.findByRole('button', { name: /next/i });
+      
+      // Try to submit without filling required fields - Next button should be disabled
+      expect(nextButton).toBeDisabled();
+      
+      // Fill one required field
+      const ageSelect = screen.getByLabelText(/age range/i);
+      await act(async () => {
+        fireEvent.change(ageSelect, { target: { value: '25-34' } });
+      });
+      
+      // Button should still be disabled with one field filled
+      expect(nextButton).toBeDisabled();
+      
+      // Fill the other required field
+      const sexSelect = screen.getByLabelText(/sex/i);
+      await act(async () => {
+        fireEvent.change(sexSelect, { target: { value: 'male' } });
+      });
+      
+      // Now the button should be enabled
+      await waitFor(() => {
+        expect(nextButton).not.toBeDisabled();
+      });
+    });
+  });
+
+  describe('Form Data Persistence', () => {
+    it('should store form data in localStorage', async () => {
+      const { localStorage } = renderComponent();
+      
+      // Fill out a field
+      const ageSelect = await screen.findByLabelText(/age range/i);
+      await act(async () => {
+        fireEvent.change(ageSelect, { target: { value: '25-34' } });
+      });
+      
+      // Check localStorage was called
+      await waitFor(() => {
+        expect(localStorage.setItem).toHaveBeenCalled();
+      });
+      
+      // Verify the stored data contains our selection
+      const calls = (localStorage.setItem as jest.Mock).mock.calls;
+      const hasAgeRange = calls.some(call => 
+        call[0] === 'registrationFormData' && 
+        call[1].includes('"ageRange":"25-34"')
+      );
+      expect(hasAgeRange).toBeTruthy();
+    });
+  });
+
+  describe('Form Submission', () => {
+    it('should handle successful form submission', async () => {
+      const { router } = renderComponent();
+      
+      // Fill basic info
+      const ageSelect = await screen.findByLabelText(/age range/i);
+      const sexSelect = await screen.findByLabelText(/sex/i);
+      
+      await act(async () => {
+        fireEvent.change(ageSelect, { target: { value: '25-34' } });
+        fireEvent.change(sexSelect, { target: { value: 'male' } });
+        fireEvent.click(screen.getByRole('button', { name: /next/i }));
+      });
+      
+      // Fill fitness info
+      await waitFor(() => {
+        expect(screen.getByLabelText(/fitness level/i)).toBeInTheDocument();
+      });
+      
+      await act(async () => {
+        fireEvent.change(screen.getByLabelText(/fitness level/i), {
+          target: { value: 'beginner' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: /next/i }));
+      });
+      
+      // Skip to review step
+      await act(async () => {
+        (window as any).setStep('review');
+      });
+      
+      // Find and click the register button
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /register/i })).toBeInTheDocument();
+      });
+      
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /register/i }));
+      });
+      
+      // Should redirect to dashboard
+      await waitFor(() => {
+        expect(router.push).toHaveBeenCalledWith('/dashboard');
+      });
+    });
+    
+    it('should handle form submission error', async () => {
+      renderComponent({ apiError: 'API Error' });
+      
+      // Fill basic info
+      const ageSelect = await screen.findByLabelText(/age range/i);
+      const sexSelect = await screen.findByLabelText(/sex/i);
+      
+      await act(async () => {
+        fireEvent.change(ageSelect, { target: { value: '25-34' } });
+        fireEvent.change(sexSelect, { target: { value: 'male' } });
+        fireEvent.click(screen.getByRole('button', { name: /next/i }));
+      });
+      
+      // Fill fitness info
+      await waitFor(() => {
+        expect(screen.getByLabelText(/fitness level/i)).toBeInTheDocument();
+      });
+      
+      await act(async () => {
+        fireEvent.change(screen.getByLabelText(/fitness level/i), {
+          target: { value: 'beginner' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: /next/i }));
+      });
+      
+      // Skip to review step
+      await act(async () => {
+        (window as any).setStep('review');
+      });
+      
+      // Find and click the register button
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /register/i })).toBeInTheDocument();
+      });
+      
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /register/i }));
+      });
+      
+      // Should show error message
+      await waitFor(() => {
+        expect(screen.getByText('API Error')).toBeInTheDocument();
+      });
     });
   });
 }); 

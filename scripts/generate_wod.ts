@@ -70,7 +70,8 @@ const sampleRequests: Record<string, WorkoutRequest> = {
         userId: sampleProfiles.beginner.userId,
         scalingPreference: "bodyweight",
         includeScalingOptions: true,
-        totalAvailableTime: 30,
+        totalAvailableTime: 60,
+        wodDuration: "10 minutes to 20 minutes",
         workoutFocus: "Strength & Conditioning",
         includeWarmups: true,
         includeCooldown: true,
@@ -84,6 +85,7 @@ const sampleRequests: Record<string, WorkoutRequest> = {
         scalingPreference: "lighter weight",
         includeScalingOptions: true,
         totalAvailableTime: 45,
+        wodDuration: "10 minutes to 20 minutes",
         workoutFocus: "Strength",
         includeWarmups: true,
         includeCooldown: true,
@@ -111,7 +113,8 @@ const sampleRequests: Record<string, WorkoutRequest> = {
         userId: sampleProfiles.senior.userId,
         scalingPreference: "lighter weight",
         includeScalingOptions: true,
-        totalAvailableTime: 30,
+        totalAvailableTime: 60,
+        wodDuration: "15 minutes to 30 minutes",
         workoutFocus: "Mobility",
         includeWarmups: true,
         includeCooldown: true,
@@ -160,10 +163,10 @@ function formatWodForMarkdown(wodResponse: WodResponse): string {
 #### Warm-up (${workout.warmup.duration || 'duration not specified'})
 ${workout.warmup.activities.map(activity => `
 - ${activity.activity} (${activity.duration || 'duration not specified'}, ${activity.intensity || 'intensity not specified'})
-  ${activity.exercises ? activity.exercises.map(ex => 
-    `  * ${ex.name}: ${ex.sets}x${ex.reps}${ex.rest ? `, rest ${ex.rest}` : ''}`
-  ).join('\n') : ''}`
-).join('\n')}`;
+  ${activity.exercises ? activity.exercises.map(ex =>
+            `  * ${ex.name}: ${ex.sets}x${ex.reps}${ex.rest ? `, rest ${ex.rest}` : ''}`
+        ).join('\n') : ''}`
+        ).join('\n')}`;
     }
 
     // Format main workout section
@@ -181,19 +184,19 @@ ${(workout.workout.exercises || []).map(ex => `
   * Reps: ${ex.reps || 'not specified'}
   * Weight: ${ex.weight || 'not specified'}
   * Goal: ${ex.goal || 'not specified'}
-  ${ex.scalingOptions ? `* Scaling Options:\n          - ${ex.scalingOptions.map(opt => 
-    `${opt.description}: ${opt.exercise} (${opt.reps})`
-  ).join('\n          - ')}` : ''}`
-).join('\n')}`;
+  ${ex.scalingOptions ? `* Scaling Options:\n          - ${ex.scalingOptions.map(opt =>
+            `${opt.description}: ${opt.exercise} (${opt.reps})`
+        ).join('\n          - ')}` : ''}`
+        ).join('\n')}`;
     }
 
     // Format cooldown section
     if (workout.cooldown?.activities?.length) {
         markdown += `
 #### Cool-down (${workout.cooldown.duration || 'duration not specified'})
-${workout.cooldown.activities.map(activity => 
-  `- ${activity.activity} (${activity.duration || 'duration not specified'}, ${activity.intensity || 'intensity not specified'})`
-).join('\n')}`;
+${workout.cooldown.activities.map(activity =>
+            `- ${activity.activity} (${activity.duration || 'duration not specified'}, ${activity.intensity || 'intensity not specified'})`
+        ).join('\n')}`;
     }
 
     // Format recovery notes
@@ -243,7 +246,7 @@ async function main() {
     fullMarkdown += '---\n\n';
 
     const profileTypes = ['beginner', 'intermediate', 'advanced', 'senior'];
-    
+
     for (const profileType of profileTypes) {
         console.log(`Generating WOD for ${profileType.toUpperCase()} profile...`);
         const wodMarkdown = await generateWodForProfile(profileType);

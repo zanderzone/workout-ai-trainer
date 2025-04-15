@@ -67,6 +67,15 @@ Workout AI Trainer - MVP (v0.1):
           Subtasks:
           - Add MCP API integration to the project
 
+    Registration Page:
+      ☐ Add registration page @P0 @4h @id(reg-page) @sprint(2) @started(25-03-28 00:41)
+          Notes: Add registration page to the project
+          Subtasks:
+          - Add registration page to the project
+          - Integrate registration page to API
+          - Add validation to registration page
+          - Add error handling to registration page
+          - Add success message to registration page
     WOD Generation UI:
         ☐ Create WOD request form @P0 @4h @id(wod-form) @sprint(2) @started(25-03-28 00:41)
             Notes: Form with essential workout preferences

@@ -1,63 +1,79 @@
 import { useState, useEffect } from 'react';
-import { checkAuthStatus } from '@/lib/api';
+import { tokenService, AuthState } from '@/lib/token';
 
-interface AuthState {
-    isAuthenticated: boolean;
-    isLoading: boolean;
-    error: string | null;
-}
-
-export function useAuth() {
-    const [authState, setAuthState] = useState<AuthState>({
-        isAuthenticated: false,
-        isLoading: true,
-        error: null,
-    });
+export const useAuth = () => {
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [userId, setUserId] = useState<string | null>(null);
+    const [email, setEmail] = useState<string | null>(null);
+    const [name, setName] = useState<string | null>(null);
 
     useEffect(() => {
-        let mounted = true;
+        // Initial auth state
+        const initialState = tokenService.getAuthState();
+        setIsAuthenticated(initialState.isAuthenticated);
+        setUserId(initialState.userId);
+        setEmail(initialState.email);
+        setName(initialState.name);
 
-        async function validateAuth() {
-            try {
-                // First check if we have a token in localStorage
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    if (!mounted) return;
-                    setAuthState({
-                        isAuthenticated: false,
-                        isLoading: false,
-                        error: null,
-                    });
-                    return;
-                }
+        // Subscribe to auth state changes
+        const unsubscribe = tokenService.onAuthStateChange((newState) => {
+            setIsAuthenticated(newState.isAuthenticated);
+            setUserId(newState.userId);
+            setEmail(newState.email);
+            setName(newState.name);
+            setIsLoading(false);
+        });
 
-                // If we have a token, verify it with the backend
-                const { isAuthenticated } = await checkAuthStatus();
+        // Subscribe to token expiry
+        const unsubscribeExpiry = tokenService.onTokenExpired(() => {
+            window.location.href = '/login?error=session_expired';
+        });
 
-                if (!mounted) return;
-
-                setAuthState({
-                    isAuthenticated,
-                    isLoading: false,
-                    error: null,
-                });
-            } catch (error) {
-                if (!mounted) return;
-                console.error('Auth check failed:', error);
-                setAuthState({
-                    isAuthenticated: false,
-                    isLoading: false,
-                    error: 'Authentication check failed. Please try again.',
-                });
-            }
-        }
-
-        validateAuth();
+        // Set loading to false after initial state is loaded
+        // Use a microtask to ensure this happens after the current render cycle
+        // but without causing tests to hang
+        Promise.resolve().then(() => {
+            setIsLoading(false);
+        });
 
         return () => {
-            mounted = false;
+            unsubscribe();
+            unsubscribeExpiry();
         };
     }, []);
 
-    return authState;
-} 
+    const login = async (token: string) => {
+        tokenService.setToken(token);
+    };
+
+    const logout = () => {
+        tokenService.removeToken();
+        window.location.href = '/login';
+    };
+
+    const refreshToken = async () => {
+        try {
+            await tokenService.refreshToken();
+        } catch (error) {
+            tokenService.removeToken();
+            window.location.href = '/login';
+        }
+    };
+
+    const getAuthHeaders = () => {
+        return tokenService.getAuthHeaders();
+    };
+
+    return {
+        isAuthenticated,
+        isLoading,
+        userId,
+        email,
+        name,
+        login,
+        logout,
+        refreshToken,
+        getAuthHeaders,
+    };
+}; 

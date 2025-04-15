@@ -7,7 +7,7 @@ import { z } from 'zod';
 
 const exerciseSchema = z.object({
     exercise: z.string(),
-    type: z.enum(['strength', 'cardio', 'gymnastics', 'olympic', 'accessory']),
+    type: z.enum(['strength', 'cardio', 'gymnastics', 'olympic', 'accessory', 'power', 'endurance']),
     reps: z.string(),
     weight: z.string().optional(),
     goal: z.string(),

@@ -21,6 +21,7 @@ export class WodModel {
         workoutRequest: WorkoutRequest
     ): Promise<WodType> {
         try {
+            let userProfile = fitnessProfile;
             console.log('Starting WOD generation for user:', userId);
             console.log('Request:', workoutRequest);
 
@@ -29,11 +30,13 @@ export class WodModel {
             console.log('Recent workouts:', recentWorkouts);
 
             // Get user's fitness profile
-            const userProfile = await this.userService.getFitnessProfile(userId);
-            console.log('Fitness profile:', userProfile);
+            if (!fitnessProfile) {
+                const userProfile = await this.userService.getFitnessProfile(userId);
+                console.log('Fitness profile:', userProfile);
+            }
 
             // Format workout overview
-            const workoutOverview = formatWorkoutOverview(recentWorkouts, userProfile);
+            const workoutOverview = formatWorkoutOverview(recentWorkouts, userProfile, workoutRequest);
 
             // Determine workout type and duration
             const workoutTypeRecommendation = await this.aiAdapter.determineWorkoutType(
