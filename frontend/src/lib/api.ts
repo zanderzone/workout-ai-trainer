@@ -46,7 +46,7 @@ export async function checkAuthStatus() {
 interface FitnessProfileData {
     ageRange?: "18-24" | "25-34" | "35-44" | "45-54" | "55+";
     sex?: "male" | "female" | "other";
-    fitnessLevel: "beginner" | "intermediate" | "advanced";
+    fitnessLevel?: "beginner" | "intermediate" | "advanced";
     goals: Array<"weight loss" | "muscle gain" | "strength" | "endurance" | "power" | "flexibility" | "general fitness">;
     injuriesOrLimitations?: string[];
     availableEquipment: string[];
@@ -55,28 +55,24 @@ interface FitnessProfileData {
     locationPreference?: "gym" | "home" | "park" | "indoor" | "outdoor" | "both";
 }
 
-export async function completeProfile(data: FitnessProfileData) {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        throw new Error('No authentication token found');
-    }
-
+export async function completeProfile(data: FitnessProfileData, headers?: HeadersInit): Promise<void> {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/fitness-profile`, {
+        const response = await fetch(`${API_BASE_URL}/api/users/me`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                ...headers
             },
             body: JSON.stringify(data)
         });
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
+            const errorData = await response.json();
             throw new Error(errorData.message || 'Failed to complete profile');
         }
 
-        return response.json();
+        // Store completion status
+        localStorage.setItem('isRegistrationComplete', 'true');
     } catch (error) {
         console.error('Error completing profile:', error);
         throw error;
@@ -89,7 +85,10 @@ export async function validateProfile(data: FitnessProfileData): Promise<{ isVal
     // Required fields validation
     if (!data.fitnessLevel) {
         errors.fitnessLevel = 'Fitness level is required';
+    } else if (!["beginner", "intermediate", "advanced"].includes(data.fitnessLevel)) {
+        errors.fitnessLevel = 'Invalid fitness level';
     }
+
     if (!data.goals || data.goals.length === 0) {
         errors.goals = 'At least one goal is required';
     }
