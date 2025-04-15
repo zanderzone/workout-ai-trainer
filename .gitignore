@@ -61,3 +61,8 @@ config/keys/apple-auth-key.p8
 
 # Sample workout files
 docs/sample-wods/
+
+# Duplicate directories
+frontend/frontend/
+frontend/
+/
