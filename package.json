@@ -7,7 +7,10 @@
     "dev": "nodemon --watch src -e ts,js --exec ts-node ./src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "vitest run",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --reporters='default' --reporters='jest-junit'",
     "test:unit": "vitest tests/unit --reporter=verbose",
     "test:integration": "vitest tests/integration --silent=false --reporter=verbose",
     "test:e2e": "vitest tests/e2e",
@@ -64,6 +67,10 @@
     "zod-to-json-schema": "^3.24.1"
   },
   "dependencies": {
+    "@radix-ui/react-label": "^2.1.2",
+    "@radix-ui/react-select": "^2.1.6",
+    "@radix-ui/react-slot": "^1.1.2",
+    "@radix-ui/react-toast": "^1.2.6",
     "@types/cookie-parser": "^1.4.8",
     "@types/cors": "^2.8.17",
     "@types/debug": "^4.1.12",
@@ -71,6 +78,8 @@
     "@types/passport": "^1.0.17",
     "@types/passport-apple": "^2.0.3",
     "@types/passport-google-oauth20": "^2.0.16",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "connect-mongo": "^5.1.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -87,6 +96,7 @@
     "passport-apple": "^2.0.2",
     "passport-google-oauth20": "^2.0.0",
     "pg": "^8.13.1",
+    "tailwind-merge": "^3.1.0",
     "zod": "^3.24.1"
   }
 }
