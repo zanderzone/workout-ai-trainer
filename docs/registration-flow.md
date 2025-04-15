@@ -99,6 +99,65 @@ sequenceDiagram
     Frontend->>User: Show success message
 ```
 
+## Profile Management
+
+After registration, users can manage their fitness profile through various endpoints:
+
+### Reset Fitness Profile
+Users can reset their fitness profile to default values while maintaining their account:
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant Backend
+    participant Database
+
+    User->>Frontend: Click "Reset Profile"
+    Frontend->>User: Show confirmation dialog
+    User->>Frontend: Confirm reset
+    Frontend->>Backend: POST /api/fitness-profile/reset
+    Backend->>Backend: Validate JWT token
+    Backend->>Database: Reset profile to defaults
+    Note over Backend: Sets:<br/>- fitnessLevel: "beginner"<br/>- goals: []<br/>- availableEquipment: []<br/>- Other fields: null/empty
+    Database->>Backend: Return reset profile
+    Backend->>Frontend: Return success
+    Frontend->>User: Show success message
+    Frontend->>User: Redirect to profile setup
+```
+
+### Available Profile Management Endpoints
+
+1. **Update Profile**
+   - `PUT /api/fitness-profile`
+   - Updates specific profile fields
+   - All fields are optional
+
+2. **View Profile**
+   - `GET /api/fitness-profile`
+   - Retrieves current profile data
+
+3. **Reset Profile**
+   - `POST /api/fitness-profile/reset`
+   - Resets profile to default values
+   - Maintains account data
+
+### Default Profile Values
+When resetting a profile, the following defaults are applied:
+```typescript
+{
+    fitnessLevel: "beginner",
+    goals: [],
+    availableEquipment: [],
+    ageRange: null,
+    sex: null,
+    injuriesOrLimitations: [],
+    preferredTrainingDays: [],
+    preferredWorkoutDuration: null,
+    locationPreference: null
+}
+```
+
 ## Data Structures
 
 ### User Data
