@@ -1,16 +1,16 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { useRouter } from 'next/navigation';
 import ProtectedRoute from '../protected-route';
-import { checkAuthStatus } from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }));
 
-// Mock API
-jest.mock('@/lib/api', () => ({
-  checkAuthStatus: jest.fn(),
+// Mock useAuth hook
+jest.mock('@/hooks/useAuth', () => ({
+  useAuth: jest.fn(),
 }));
 
 describe('ProtectedRoute', () => {
@@ -27,7 +27,11 @@ describe('ProtectedRoute', () => {
   });
 
   it('should show loading state initially', () => {
-    (checkAuthStatus as jest.Mock).mockImplementation(() => new Promise(() => {}));
+    (useAuth as jest.Mock).mockReturnValue({
+      isAuthenticated: false,
+      isLoading: true,
+      error: null,
+    });
     
     render(
       <ProtectedRoute>
@@ -39,7 +43,11 @@ describe('ProtectedRoute', () => {
   });
 
   it('should redirect to login when not authenticated', async () => {
-    (checkAuthStatus as jest.Mock).mockResolvedValue({ isAuthenticated: false });
+    (useAuth as jest.Mock).mockReturnValue({
+      isAuthenticated: false,
+      isLoading: false,
+      error: null,
+    });
     
     render(
       <ProtectedRoute>
@@ -53,7 +61,11 @@ describe('ProtectedRoute', () => {
   });
 
   it('should show protected content when authenticated', async () => {
-    (checkAuthStatus as jest.Mock).mockResolvedValue({ isAuthenticated: true });
+    (useAuth as jest.Mock).mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+    });
     
     render(
       <ProtectedRoute>
@@ -67,7 +79,11 @@ describe('ProtectedRoute', () => {
   });
 
   it('should use custom redirect path', async () => {
-    (checkAuthStatus as jest.Mock).mockResolvedValue({ isAuthenticated: false });
+    (useAuth as jest.Mock).mockReturnValue({
+      isAuthenticated: false,
+      isLoading: false,
+      error: null,
+    });
     
     render(
       <ProtectedRoute redirectPath="/custom-login">
@@ -81,7 +97,11 @@ describe('ProtectedRoute', () => {
   });
 
   it('should show custom fallback component', () => {
-    (checkAuthStatus as jest.Mock).mockImplementation(() => new Promise(() => {}));
+    (useAuth as jest.Mock).mockReturnValue({
+      isAuthenticated: false,
+      isLoading: true,
+      error: null,
+    });
     
     render(
       <ProtectedRoute fallback={<div>Custom Loading...</div>}>
@@ -93,7 +113,11 @@ describe('ProtectedRoute', () => {
   });
 
   it('should show error message when auth check fails', async () => {
-    (checkAuthStatus as jest.Mock).mockRejectedValue(new Error('Auth failed'));
+    (useAuth as jest.Mock).mockReturnValue({
+      isAuthenticated: false,
+      isLoading: false,
+      error: 'Authentication check failed. Please try again.',
+    });
     
     render(
       <ProtectedRoute>
@@ -107,7 +131,11 @@ describe('ProtectedRoute', () => {
   });
 
   it('should redirect to dashboard when authenticated and requireAuth is false', async () => {
-    (checkAuthStatus as jest.Mock).mockResolvedValue({ isAuthenticated: true });
+    (useAuth as jest.Mock).mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+    });
     
     render(
       <ProtectedRoute requireAuth={false}>
