@@ -424,6 +424,35 @@ Workout AI Trainer - MVP (v0.1):
             * Add rate limit information to API documentation
             * Set up monitoring dashboard for rate limit events
 
+  ☐ Accessibility Improvements:
+      ☐ Implement WCAG 2.1 AA Compliance @P1 @8h @id(wcag-compliance)
+          Notes: Enhance accessibility across the application
+          Subtasks:
+          - Form Accessibility:
+            * Add proper ARIA attributes to form controls
+            * Implement keyboard navigation support
+            * Ensure all form errors are announced to screen readers
+            * Add focus management for multi-step forms
+            * Ensure sufficient color contrast for form elements
+          - Content Accessibility:
+            * Add alt text for all images
+            * Implement proper heading structure
+            * Ensure text resizing works properly
+            * Add skip navigation links
+            * Ensure content is readable in high contrast mode
+          - Interactive Elements:
+            * Ensure all buttons and links have accessible names
+            * Add aria-live regions for dynamic content
+            * Implement proper focus indicators
+            * Ensure interactive elements are keyboard accessible
+            * Add tooltips for complex UI elements
+          - Documentation & Testing:
+            * Add accessibility statement
+            * Conduct automated accessibility testing
+            * Perform manual testing with screen readers
+            * Create accessibility documentation
+            * Train team on accessibility best practices
+
   ☐ AI Coach Profiles Feature:
       ☐ Design coach personality system @P1 @6h @id(coach-design)
           Notes: Define coach attributes, personality traits, and experience templates
