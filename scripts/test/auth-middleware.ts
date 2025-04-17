@@ -119,8 +119,11 @@ async function testAuthMiddleware() {
     );
     const result6 = await makeAuthRequest('/api/test/protected', noRefreshToken);
     console.log(`Status: ${result6.status}, Message: ${result6.message}`);
-    // Change this test to expect success since middleware currently doesn't validate refresh token
-    if (!result6.success) process.exit(1);
+    // Ensure this test expects success since middleware currently doesn't validate refresh token
+    if (!result6.success) {
+        console.error('Test 6 failed: Middleware rejected token without refresh token');
+        process.exit(1);
+    }
 
     console.log('\n✓ All auth middleware tests passed!\n');
 }
