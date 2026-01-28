@@ -1,4 +1,5 @@
 # Workout AI Trainer
+**This repository represents an early exploratory prototype.**
 
 ## Overview
 
